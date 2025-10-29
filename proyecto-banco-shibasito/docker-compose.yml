@@ -1,0 +1,46 @@
+version: '3.8'
+services:
+  bd1:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  bd2:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=pass
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  servicio-banco-lp1:
+    build: ./servicio-banco-lp1
+    depends_on:
+      - bd1
+      - rabbitmq
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://bd1:5432/shibasito
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=pass
+      - SPRING_RABBITMQ_HOST=rabbitmq
+
+  servicio-reniec-lp2:
+    build: ./servicio-reniec-lp2
+    depends_on:
+      - bd2
+      - rabbitmq
+    environment:
+      - DATABASE_URL=mysql+pymysql://root:pass@bd2/reniec
+      - RABBITMQ_HOST=rabbitmq
+
+volumes:
+  postgres_data:
+  mysql_data:
