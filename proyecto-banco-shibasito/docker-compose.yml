@@ -1,26 +1,6 @@
 version: '3.8'
+
 services:
-  bd1:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=pass
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  bd2:
-    image: mysql:8.0
-    environment:
-      - MYSQL_ROOT_PASSWORD=pass
-    volumes:
-      - mysql_data:/var/lib/mysql
-
-  rabbitmq:
-    image: rabbitmq:3.13-management
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-
   servicio-banco-lp1:
     build: ./servicio-banco-lp1
     depends_on:
@@ -31,6 +11,8 @@ services:
       - SPRING_DATASOURCE_USERNAME=admin
       - SPRING_DATASOURCE_PASSWORD=pass
       - SPRING_RABBITMQ_HOST=rabbitmq
+    networks:
+      - shibasito_network
 
   servicio-reniec-lp2:
     build: ./servicio-reniec-lp2
@@ -40,7 +22,18 @@ services:
     environment:
       - DATABASE_URL=mysql+pymysql://root:pass@bd2/reniec
       - RABBITMQ_HOST=rabbitmq
+    networks:
+      - shibasito_network
 
-volumes:
-  postgres_data:
-  mysql_data:
+  terraform:
+    build: ./terraform
+    volumes:
+      - ./terraform:/terraform
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /terraform
+    networks:
+      - shibasito_network
+
+networks:
+  shibasito_network:
+    external: true
