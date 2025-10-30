@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   servicio-banco-lp1:
+    image: razzeti/servicio-banco-lp1
     build: ./servicio-banco-lp1
     ports:
       - "8080:8080"
@@ -15,6 +16,7 @@ services:
       - rabbitmq
 
   servicio-reniec-lp2:
+    image: razzeti/servicio-reniec-lp2
     build: ./servicio-reniec-lp2
     ports:
       - "8000:8000"
