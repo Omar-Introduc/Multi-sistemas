@@ -53,7 +53,11 @@ public class ApiResponse<T> {
     }
 
     public static <T> ApiResponse<T> error(int codigo, String mensaje) {
-        return new ApiResponse<>(codigo, mensaje, false);
+        return new ApiResponse<>(codigo, mensaje, null, false);
+    }
+
+    public static <T> ApiResponse<T> error(int codigo, String mensaje, T data) {
+        return new ApiResponse<>(codigo, mensaje, data, false);
     }
 
     public static <T> ApiResponse<T> error(String mensaje) {

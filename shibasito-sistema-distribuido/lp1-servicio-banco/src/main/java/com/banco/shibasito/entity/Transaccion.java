@@ -1,6 +1,6 @@
 package com.banco.shibasito.entity;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -159,6 +159,15 @@ public class Transaccion {
     
     public void setCuenta(Cuenta cuenta) {
         this.cuenta = cuenta;
+    }
+
+    public String getCuentaOrigen() {
+        return cuenta != null ? cuenta.getNumero() : null;
+    }
+
+    public String getCuentaDestino() {
+        // This is a placeholder. In a real application, you would have a separate field for the destination account.
+        return null;
     }
 
     @Override

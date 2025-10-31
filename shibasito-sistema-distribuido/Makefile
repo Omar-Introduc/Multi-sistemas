@@ -9,7 +9,7 @@
 COMPOSE_FILE = docker-compose.main.yml
 COMPOSE_OVERRIDE = docker-compose.override.yml
 ENV_FILE = .env
-COMPOSE = docker-compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE)
+COMPOSE = sudo docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE)
 
 # Colores para output
 GREEN = \033[0;32m
@@ -163,7 +163,7 @@ status: ## Ver estado completo de todos los servicios
 	@make health-check
 	@echo ""
 	@echo "$(YELLOW)📈 Estadísticas de Recursos:$(NC)"
-	@docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}\t{{.BlockIO}}" | head -20
+	@sudo docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}\t{{.BlockIO}}" | head -20
 
 scale: ## Escalar servicios del sistema (escala automáticamente LP1 y LP2)
 	@echo "$(CYAN)🔄 Escalando servicios del sistema...$(NC)"
@@ -199,13 +199,13 @@ scale-all: ## Escalar todos los servicios escalables
 	@$(COMPOSE) ps | grep -E "(servicio-banco-lp1|servicio-reniec-lp2)"
 
 # =============================================================================
-# COMANDOS DE TESTING Y VALIDACIÓN
+# COMANDOS DE TESTING E VALIDAÇÃO
 # =============================================================================
 
-test: ## Ejecutar tests básicos del sistema
-	@echo "$(CYAN)🧪 Ejecutando tests básicos del sistema...$(NC)"
+test: ## Executar testes básicos do sistema
+	@echo "$(CYAN)🧪 Executando testes básicos do sistema...$(NC)"
 	@echo "=================================================================="
-	@echo "$(YELLOW)1. Verificando conectividad entre servicios...$(NC)"
+	@echo "$(YELLOW)1. Verificando conectividade entre serviços...$(NC)"
 	@make health-check
 	@echo ""
 	@echo "$(YELLOW)2. Probando endpoints de servicios...$(NC)"
@@ -225,29 +225,29 @@ test: ## Ejecutar tests básicos del sistema
 	@echo ""
 	@echo "$(GREEN)✅ Tests básicos completados$(NC)"
 
-test-all: ## Ejecutar todos los tests disponibles del sistema
-	@echo "$(CYAN)🧪 Ejecutando suite completa de tests...$(NC)"
+test-all: ## Executar todos os testes disponíveis do sistema
+	@echo "$(CYAN)🧪 Executando suite completa de testes...$(NC)"
 	@echo "=================================================================="
-	@echo "$(YELLOW)🔄 Ejecutando tests básicos...$(NC)"
+	@echo "$(YELLOW)🔄 Executando testes básicos...$(NC)"
 	@make test
 	@echo ""
-	@echo "$(YELLOW)🔄 Ejecutando tests de integración...$(NC)"
+	@echo "$(YELLOW)🔄 Executando testes de integração...$(NC)"
 	@echo "Test 1: Comunicación Banco -> RENIEC"
 	-@$(COMPOSE) exec -T servicio-banco-lp1 python3 -c "import requests; r = requests.get('http://servicio-reniec-lp2:8000/health'); print('OK' if r.status_code == 200 else 'FALLA')" 2>/dev/null && echo "$(GREEN)✅ Comunicación BANCO->RENIEC: OK$(NC)" || echo "$(RED)❌ Comunicación BANCO->RENIEC: FALLA$(NC)"
 	@echo "Test 2: Comunicación RENIEC -> Banco"
 	-@$(COMPOSE) exec -T servicio-reniec-lp2 python3 -c "import requests; r = requests.get('http://servicio-banco-lp1:8080/health'); print('OK' if r.status_code == 200 else 'FALLA')" 2>/dev/null && echo "$(GREEN)✅ Comunicación RENIEC->BANCO: OK$(NC)" || echo "$(RED)❌ Comunicación RENIEC->BANCO: FALLA$(NC)"
 	@echo ""
-	@echo "$(YELLOW)🔄 Ejecutando tests de mensaje con RabbitMQ...$(NC)"
+	@echo "$(YELLOW)🔄 Executando testes de mensagem com RabbitMQ...$(NC)"
 	@$(COMPOSE) exec -T rabbitmq rabbitmqctl list_queues > /dev/null 2>&1 && echo "$(GREEN)✅ RabbitMQ Queue Management: OK$(NC)" || echo "$(RED)❌ RabbitMQ Queue Management: FALLA$(NC)"
 	@echo ""
-	@echo "$(YELLOW)🔄 Ejecutando tests de monitoreo...$(NC)"
+	@echo "$(YELLOW)🔄 Executando testes de monitoreo...$(NC)"
 	-@curl -f -s http://localhost:9090/api/v1/query?query=up > /dev/null && echo "$(GREEN)✅ Prometheus Metrics: OK$(NC)" || echo "$(RED)❌ Prometheus Metrics: FALLA$(NC)"
 	-@curl -f -s http://localhost:3000/api/health > /dev/null && echo "$(GREEN)✅ Grafana API: OK$(NC)" || echo "$(RED)❌ Grafana API: FALLA$(NC)"
 	@echo ""
-	@echo "$(GREEN)✅ Suite completa de tests finalizada$(NC)"
+	@echo "$(GREEN)✅ Suite completa de testes finalizada$(NC)"
 
-stress-test: ## Ejecutar tests de estrés y rendimiento
-	@echo "$(CYAN)⚡ Iniciando tests de estrés y rendimiento...$(NC)"
+stress-test: ## Executar testes de estresse e rendimento
+	@echo "$(CYAN)⚡ Iniciando testes de estresse e rendimento...$(NC)"
 	@echo "=================================================================="
 	@echo "$(YELLOW)🔄 Test de carga en API Banco...$(NC)"
 	-@for i in {1..10}; do curl -f -s http://localhost:8080/health > /dev/null && echo "Request $$i: OK" || echo "Request $$i: FALLA"; done
@@ -257,15 +257,15 @@ stress-test: ## Ejecutar tests de estrés y rendimiento
 	@echo ""
 	@echo "$(YELLOW)🔄 Test de memoria y CPU...$(NC)"
 	@echo "Estadísticas actuales:"
-	@docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}"
+	@sudo docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}"
 	@echo ""
 	@echo "$(YELLOW)🔄 Test de Redis...$(NC)"
 	@$(COMPOSE) exec -T redis redis-cli ping > /dev/null 2>&1 && echo "$(GREEN)✅ Redis: OK$(NC)" || echo "$(RED)❌ Redis: FALLA$(NC)"
 	@echo ""
-	@echo "$(GREEN)✅ Tests de estrés completados$(NC)"
+	@echo "$(GREEN)✅ Tests de estresse completados$(NC)"
 
-validate-data: ## Validar integridad de datos en bases de datos
-	@echo "$(CYAN)🔍 Validando integridad de datos en bases de datos...$(NC)"
+validate-data: ## Validar integridade de dados em bases de dados
+	@echo "$(CYAN)🔍 Validando integridade de dados em bases de dados...$(NC)"
 	@echo "=================================================================="
 	@echo "$(YELLOW)🗄️  Validando PostgreSQL (Banco)...$(NC)"
 	@echo "Verificando conexión:"
@@ -285,11 +285,11 @@ validate-data: ## Validar integridad de datos en bases de datos
 	@echo "$(GREEN)✅ Validación de datos completada$(NC)"
 
 # =============================================================================
-# COMANDOS DE SALUD Y MONITOREO
+# COMANDOS DE SAÚDE E MONITORAÇÃO
 # =============================================================================
 
-health-check: ## Verificar estado de salud de todos los servicios
-	@echo "$(CYAN)🏥 Health Check - Estado de Salud de Servicios$(NC)"
+health-check: ## Verificar estado de saúde de todos os serviços
+	@echo "$(CYAN)🏥 Health Check - Estado de Saúde de Servicios$(NC)"
 	@echo "=================================================================="
 	@$(COMPOSE) ps --format "table {{.Service}}\t{{.Status}}\t{{.Ports}}"
 	@echo ""
@@ -310,7 +310,7 @@ health-check: ## Verificar estado de salud de todos los servicios
 	@echo "$(GREEN)✅ Health check completado$(NC)"
 
 # =============================================================================
-# COMANDOS DE DESARROLLO Y DEBUG
+# COMANDOS DE DESENVOLVIMENTO E DEBUG
 # =============================================================================
 
 shell-banco: ## Acceder al shell del servicio Banco (LP1)
@@ -352,13 +352,13 @@ debug: ## Mostrar información completa de debug
 	@echo "  Environment File: $(ENV_FILE)"
 	@echo ""
 	@echo "$(YELLOW)🌐 Redes Docker:$(NC)"
-	@docker network ls | grep shibasito || echo "No se encontraron redes de shibasito"
+	@sudo docker network ls | grep shibasito || echo "No se encontraron redes de shibasito"
 	@echo ""
 	@echo "$(YELLOW)💾 Volúmenes Docker:$(NC)"
-	@docker volume ls | grep shibasito || echo "No se encontraron volúmenes de shibasito"
+	@sudo docker volume ls | grep shibasito || echo "No se encontraron volúmenes de shibasito"
 	@echo ""
 	@echo "$(YELLOW)🖼️  Imágenes Docker:$(NC)"
-	@docker images | grep shibasito || echo "No se encontraron imágenes de shibasito"
+	@sudo docker images | grep shibasito || echo "No se encontraron imágenes de shibasito"
 	@echo ""
 	@echo "$(YELLOW)📊 Estado Actual:$(NC)"
 	@make status
@@ -369,7 +369,7 @@ check: ## Verificar configuración del docker-compose
 	@echo "$(GREEN)✅ Configuración válida$(NC)"
 
 # =============================================================================
-# COMANDOS DE BACKUP Y RESTAURACIÓN
+# COMANDOS DE BACKUP E RESTAURAÇÃO
 # =============================================================================
 
 backup: ## Crear backup completo de todas las bases de datos
@@ -403,7 +403,7 @@ restore: ## Restaurar backup de bases de datos
 	fi
 
 # =============================================================================
-# COMANDOS DE MANTENIMIENTO Y LIMPIEZA
+# COMANDOS DE MANUTENÇÃO E LIMPEZA
 # =============================================================================
 
 clean: ## Limpiar contenedores, redes y volúmenes (⚠️ ELIMINA TODOS LOS DATOS)
@@ -418,11 +418,11 @@ clean: ## Limpiar contenedores, redes y volúmenes (⚠️ ELIMINA TODOS LOS DAT
 	@read -r CONFIRM && [ "$$CONFIRM" = "CONFIRM" ] || (echo "$(RED)Operación cancelada$(NC)" && exit 1)
 	@echo "$(YELLOW)🧹 Procediendo con la limpieza...$(NC)"
 	@$(COMPOSE) down -v --remove-orphans
-	@docker system prune -f --volumes
+	@sudo docker system prune -f --volumes
 	@echo "$(GREEN)✅ Limpieza completada - Sistema reseteado$(NC)"
 
 # =============================================================================
-# COMANDOS ESPECÍFICOS DE SERVICIOS
+# COMANDOS ESPECÍFICOS DE SERVIÇOS
 # =============================================================================
 
 # Logs específicos
@@ -461,26 +461,26 @@ restart-db: ## Reiniciar solo las bases de datos
 	@$(COMPOSE) restart bd1_postgresql bd2_mysql redis
 
 # =============================================================================
-# COMANDOS DE ACTUALIZACIÓN
+# COMANDOS DE ATUALIZAÇÃO
 # =============================================================================
 
-update: ## Actualizar imágenes Docker y reiniciar servicios
-	@echo "$(YELLOW)🔄 Actualizando imágenes Docker...$(NC)"
+update: ## Atualizar imagens Docker e reiniciar serviços
+	@echo "$(YELLOW)🔄 Atualizando imagens Docker...$(NC)"
 	@$(COMPOSE) pull
-	@echo "$(YELLOW)🔄 Reiniciando servicios con nuevas imágenes...$(NC)"
+	@echo "$(YELLOW)🔄 Reiniciando serviços com novas imagens...$(NC)"
 	@$(COMPOSE) up -d
-	@echo "$(GREEN)✅ Actualización completada$(NC)"
+	@echo "$(GREEN)✅ Atualização completada$(NC)"
 
 # =============================================================================
-# COMANDOS ADICIONALES DE UTILIDAD
+# COMANDOS ADICIONAIS DE UTILIDADE
 # =============================================================================
 
 info: ## Mostrar información completa del sistema
 	@echo "$(CYAN)📊 Información Completa del Sistema Distribuido$(NC)"
 	@echo "=================================================================="
 	@echo "$(YELLOW)🐳 Docker Info:$(NC)"
-	@docker --version
-	@docker-compose --version
+	@sudo docker --version
+	@sudo docker-compose --version
 	@echo ""
 	@echo "$(YELLOW)🗂️  Archivos de Configuración:$(NC)"
 	@echo "  Docker Compose: $(COMPOSE_FILE)"
@@ -513,15 +513,15 @@ system-resources: ## Mostrar uso de recursos del sistema
 	@top -bn1 | grep "Cpu(s)" | head -1 || htop --version 2>/dev/null || echo "htop no disponible"
 	@echo ""
 	@echo "$(YELLOW)🐳 Containers:$(NC)"
-	@docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}"
+	@sudo docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}"
 
 clean-logs: ## Limpiar logs de contenedores (mantener logs recientes)
 	@echo "$(YELLOW)🧹 Limpiando logs antiguos de contenedores...$(NC)"
-	@for container in $$(docker ps -aq); do \
+	@for container in $$(sudo docker ps -aq); do \
 		echo "Limpiando logs de $$container..."; \
-		docker logs --details $$container 2>/dev/null | head -50 > /tmp/recent_logs_$$container; \
-		echo "" > $$(docker inspect --format='{{.LogPath}}' $$container); \
-		cp /tmp/recent_logs_$$container $$(docker inspect --format='{{.LogPath}}' $$container) 2>/dev/null || true; \
+		sudo docker logs --details $$container 2>/dev/null | head -50 > /tmp/recent_logs_$$container; \
+		echo "" > $$(sudo docker inspect --format='{{.LogPath}}' $$container); \
+		cp /tmp/recent_logs_$$container $$(sudo docker inspect --format='{{.LogPath}}' $$container) 2>/dev/null || true; \
 		rm -f /tmp/recent_logs_$$container; \
 	done
 	@echo "$(GREEN)✅ Logs limpiados exitosamente$(NC)"

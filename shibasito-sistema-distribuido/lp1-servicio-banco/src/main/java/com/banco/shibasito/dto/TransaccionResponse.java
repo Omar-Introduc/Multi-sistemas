@@ -11,6 +11,9 @@ import java.time.LocalDateTime;
 @Schema(description = "Información de transacción bancaria")
 public class TransaccionResponse {
 
+    @Schema(description = "ID único de la transacción", example = "1")
+    private Long id;
+
     @Schema(description = "ID único de la transacción", example = "TXN-2025-0001")
     private String transaccionId;
 
@@ -47,6 +50,9 @@ public class TransaccionResponse {
     @Schema(description = "Código de autorización", example = "AUTH-123456")
     private String codigoAutorizacion;
 
+    @Schema(description = "Canal de la transacción", example = "ATM")
+    private String canal;
+
     // Constructores
     public TransaccionResponse() {}
 
@@ -62,6 +68,14 @@ public class TransaccionResponse {
     }
 
     // Getters y Setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public String getTransaccionId() {
         return transaccionId;
     }
@@ -156,5 +170,13 @@ public class TransaccionResponse {
 
     public void setCodigoAutorizacion(String codigoAutorizacion) {
         this.codigoAutorizacion = codigoAutorizacion;
+    }
+
+    public String getCanal() {
+        return canal;
+    }
+
+    public void setCanal(String canal) {
+        this.canal = canal;
     }
 }

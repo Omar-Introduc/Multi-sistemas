@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
+import java.util.Optional;
+
 /**
  * Configuración de JPA Auditing para el sistema
  * 
@@ -36,10 +38,10 @@ public class JpaAuditingConfig {
     public static class AuditorAwareImpl implements AuditorAware<String> {
 
         @Override
-        public String getCurrentAuditor() {
+        public Optional<String> getCurrentAuditor() {
             // En una aplicación real, aquí se obtendría el usuario autenticado
             // desde el SecurityContext o otro mecanismo de autenticación
-            return "system"; // Usuario por defecto para auditorías
+            return Optional.of("system"); // Usuario por defecto para auditorías
         }
     }
 }

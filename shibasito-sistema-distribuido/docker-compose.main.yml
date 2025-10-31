@@ -315,7 +315,6 @@ services:
       POSTGRES_DB: banco_db
       POSTGRES_USER: ${POSTGRES_USER:-banco_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-banco_pass123}
-      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
       
       # Configuración adicional
       POSTGRES_MULTIPLE_DATABES: banco_db,audit_db
@@ -742,83 +741,3 @@ services:
       start_period: 60s
       disable: false
 
-# =============================================================================
-# RESUMEN DE OPTIMIZACIONES APLICADAS
-# =============================================================================
-
-## CONFIGURACIONES DE SERVICIOS DE SOPORTE OPTIMIZADAS
-
-### Redis - Cache y Session Store
-✅ Límites de memoria: 512MB límite, 256MB reserva
-✅ Límites de CPU: 0.25 límite, 0.1 reserva
-✅ Persistencia: AOF habilitado con appendfsync everysec
-✅ Gestión de memoria: Política allkeys-lru
-✅ Health check: Interval 10s, timeout 3s
-✅ Script de backup: redis-backup.sh con retención 3 días
-✅ Volúmenes de backup: redis_backup con driver_opts
-✅ Configuración de logging con rotación
-
-### PostgreSQL - Base de datos BD1
-✅ Límites de memoria: 1GB límite, 512MB reserva
-✅ Límites de CPU: 0.5 límite, 0.25 reserva
-✅ Seguridad: Autenticación scram-sha-256
-✅ Performance: shared_buffers=256MB, effective_cache_size=768MB
-✅ Logging: logging_collector habilitado con rotación
-✅ Health check: pg_isready con verificación de DB
-✅ Script de backup: postgres-backup.sh con retención 7 días
-✅ Volúmenes de backup: postgres_bd1_backup con driver_opts
-✅ Configuración de WAL para backup incremental
-
-### MySQL - Base de datos BD2
-✅ Límites de memoria: 1GB límite, 512MB reserva
-✅ Límites de CPU: 0.5 límite, 0.25 reserva
-✅ InnoDB: buffer_pool_size=512MB, log_file_size=128MB
-✅ Seguridad: local-infile=0, SQL mode estricto
-✅ Performance: innodb_flush_log_at_trx_commit=2
-✅ Health check: mysqladmin ping
-✅ Script de backup: mysql-backup.sh con retención 7 días
-✅ Volúmenes de backup: mysql_bd2_backup con driver_opts
-✅ Configuración de binlogs para backup incremental
-
-### Configuraciones Generales
-✅ Volúmenes con driver_opts para persistencia mejorada
-✅ Redes aisladas: main, database, monitoring
-✅ Health checks en todos los servicios críticos
-✅ Logging configurado con rotación automática
-✅ Labels para automatización de backup
-✅ Configuración de dependencias entre servicios
-
-### Scripts de Backup Automático
-✅ PostgreSQL: Backup completo con compresión, integridad verificada
-✅ MySQL: Backup con mysqldump, compresión gzip
-✅ Redis: Backup RDB + AOF con verificación de integridad
-✅ Retención automática: PostgreSQL/MySQL (7 días), Redis (3 días)
-✅ Limpieza automática de backups antiguos
-✅ Logging detallado de operaciones
-✅ Opciones de restauración para recuperación
-
-### Estructura de Directorios
-✅ data/: Directorios específicos para cada servicio
-✅ logs/: Directorios de logs con rotación
-✅ backup/: Directorios de backup automatizado
-✅ Scripts de configuración y validación
-
-### Comandos de Uso
-# Iniciar servicios
-docker-compose -f docker-compose.main.yml up -d
-
-# Verificar estado
-docker-compose -f docker-compose.main.yml ps
-
-# Ejecutar backups manuales
-./scripts/postgres-backup.sh backup
-./scripts/mysql-backup.sh backup
-./scripts/redis-backup.sh backup
-
-# Monitorear logs
-docker-compose -f docker-compose.main.yml logs -f
-
-# Verificar configuración
-./scripts/validar_configuracion_soporte.sh
-
-=================================================================================

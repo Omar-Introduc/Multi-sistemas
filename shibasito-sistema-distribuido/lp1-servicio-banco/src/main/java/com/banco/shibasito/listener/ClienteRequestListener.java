@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
-import org.springframework.amqp.rabbit.listener.exception.ListenerExecutionFailedException;
+import org.springframework.amqp.rabbit.support.ListenerExecutionFailedException;
 import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.Header;
@@ -70,8 +70,8 @@ public class ClienteRequestListener {
             // Crear entidad Cliente
             Cliente cliente = new Cliente();
             cliente.setDni(request.getDni());
-            cliente.setNombre(request.getNombre());
-            cliente.setApellido(request.getApellido());
+            cliente.setNombres(request.getNombre());
+            cliente.setApellidos(request.getApellido());
             cliente.setEmail(request.getEmail());
             cliente.setTelefono(request.getTelefono());
             cliente.setDireccion(request.getDireccion());
@@ -192,8 +192,8 @@ public class ClienteRequestListener {
             Cliente cliente = clienteResponse.getData();
             
             // Actualizar campos proporcionados
-            if (request.getNombre() != null) cliente.setNombre(request.getNombre());
-            if (request.getApellido() != null) cliente.setApellido(request.getApellido());
+            if (request.getNombre() != null) cliente.setNombres(request.getNombre());
+            if (request.getApellido() != null) cliente.setApellidos(request.getApellido());
             if (request.getEmail() != null) cliente.setEmail(request.getEmail());
             if (request.getTelefono() != null) cliente.setTelefono(request.getTelefono());
             if (request.getDireccion() != null) cliente.setDireccion(request.getDireccion());

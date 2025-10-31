@@ -1,6 +1,6 @@
 package com.banco.shibasito.entity;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -46,6 +46,18 @@ public class Cliente {
     
     @Column(name = "fecha_modificacion")
     private LocalDateTime fechaModificacion;
+
+    @Column(name = "fecha_ultima_validacion")
+    private LocalDateTime fechaUltimaValidacion;
+
+    @Column(name = "estado_validacion")
+    private String estadoValidacion;
+
+    @Column(name = "observaciones_validacion")
+    private String observacionesValidacion;
+
+    @Column(name = "fecha_nacimiento")
+    private String fechaNacimiento;
     
     // Relaciones
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -190,6 +202,38 @@ public class Cliente {
     
     public void setPrestamos(List<Prestamo> prestamos) {
         this.prestamos = prestamos;
+    }
+
+    public LocalDateTime getFechaUltimaValidacion() {
+        return fechaUltimaValidacion;
+    }
+
+    public void setFechaUltimaValidacion(LocalDateTime fechaUltimaValidacion) {
+        this.fechaUltimaValidacion = fechaUltimaValidacion;
+    }
+
+    public String getEstadoValidacion() {
+        return estadoValidacion;
+    }
+
+    public void setEstadoValidacion(String estadoValidacion) {
+        this.estadoValidacion = estadoValidacion;
+    }
+
+    public String getObservacionesValidacion() {
+        return observacionesValidacion;
+    }
+
+    public void setObservacionesValidacion(String observacionesValidacion) {
+        this.observacionesValidacion = observacionesValidacion;
+    }
+
+    public String getFechaNacimiento() {
+        return fechaNacimiento;
+    }
+
+    public void setFechaNacimiento(String fechaNacimiento) {
+        this.fechaNacimiento = fechaNacimiento;
     }
 
     @Override
