@@ -1,0 +1,57 @@
+{
+  "name": "banco-electron-app",
+  "version": "1.0.0",
+  "description": "Aplicación Desktop para Sistema Bancario - LP3",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "pack": "electron-builder --dir",
+    "dist": "npm run build"
+  },
+  "author": "LP3 Team",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.6.4"
+  },
+  "dependencies": {
+    "electron-store": "^8.1.0",
+    "axios": "^1.6.2",
+    "qrcode": "^1.5.3",
+    "node-pty": "^1.0.0",
+    "sqlite3": "^5.1.6",
+    "amqplib": "^0.10.3",
+    "socket.io-client": "^4.7.2",
+    "uuid": "^9.0.0",
+    "winston": "^3.11.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "build": {
+    "appId": "com.banco.lp3.desktop",
+    "productName": "Banco Desktop",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.finance",
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}

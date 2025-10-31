@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Banco Desktop</title>
+    <link href="../../renderer/css/main.css" rel="stylesheet">
+    <link href="../../renderer/css/components.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="dashboard-container" class="dashboard-container">
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon primary">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="stat-content">
+                    <h4>Saldo Total</h4>
+                    <div class="stat-value" id="totalBalance">S/ 0.00</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon success">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                <div class="stat-content">
+                    <h4>Cuentas Activas</h4>
+                    <div class="stat-value" id="activeAccounts">0</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon warning">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+                <div class="stat-content">
+                    <h4>Transacciones del Mes</h4>
+                    <div class="stat-value" id="monthlyTransactions">0</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon error">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="stat-content">
+                    <h4>Préstamos Pendientes</h4>
+                    <div class="stat-value" id="pendingLoans">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="section">
+            <div class="section-header">
+                <h3>Acciones Rápidas</h3>
+            </div>
+            <div class="quick-actions">
+                <div class="quick-action" onclick="navigateTo('cuentas')">
+                    <div class="quick-action-icon">
+                        <i class="fas fa-plus-circle"></i>
+                    </div>
+                    <h4>Nueva Cuenta</h4>
+                    <p>Crear una nueva cuenta bancaria</p>
+                </div>
+                
+                <div class="quick-action" onclick="showTransferModal()">
+                    <div class="quick-action-icon">
+                        <i class="fas fa-paper-plane"></i>
+                    </div>
+                    <h4>Transferir</h4>
+                    <p>Enviar dinero a otra cuenta</p>
+                </div>
+                
+                <div class="quick-action" onclick="navigateTo('qr-generator')">
+                    <div class="quick-action-icon">
+                        <i class="fas fa-qrcode"></i>
+                    </div>
+                    <h4>Generar QR</h4>
+                    <p>Crear código QR para pagos</p>
+                </div>
+                
+                <div class="quick-action" onclick="navigateTo('prestamos')">
+                    <div class="quick-action-icon">
+                        <i class="fas fa-hand-holding-usd"></i>
+                    </div>
+                    <h4>Solicitar Préstamo</h4>
+                    <p>Aplicar para un nuevo préstamo</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="section">
+            <div class="section-header">
+                <h3>Transacciones Recientes</h3>
+                <button class="btn btn-outline" onclick="navigateTo('transacciones')">
+                    Ver Todas
+                </button>
+            </div>
+            <div class="transaction-list" id="recentTransactions">
+                <!-- Las transacciones se cargarán dinámicamente -->
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-inbox"></i>
+                    </div>
+                    <h3>No hay transacciones</h3>
+                    <p>Las transacciones aparecerán aquí cuando realices operaciones</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Accounts Overview -->
+        <div class="section">
+            <div class="section-header">
+                <h3>Resumen de Cuentas</h3>
+                <button class="btn btn-outline" onclick="navigateTo('cuentas')">
+                    Gestionar Cuentas
+                </button>
+            </div>
+            <div class="accounts-grid" id="accountsGrid">
+                <!-- Las cuentas se cargarán dinámicamente -->
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-credit-card"></i>
+                    </div>
+                    <h3>No hay cuentas</h3>
+                    <p>Crea tu primera cuenta para comenzar</p>
+                    <button class="btn btn-primary" onclick="showCreateAccountModal()">
+                        Crear Cuenta
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="section">
+            <div class="section-header">
+                <h3>Análisis Financiero</h3>
+            </div>
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h4>Ingresos vs Gastos (Últimos 6 meses)</h4>
+                    <div class="chart-placeholder">
+                        <div class="chart-bars">
+                            <div class="chart-bar" style="height: 60%; background: var(--success-color);">
+                                <span class="chart-label">Ene</span>
+                            </div>
+                            <div class="chart-bar" style="height: 80%; background: var(--success-color);">
+                                <span class="chart-label">Feb</span>
+                            </div>
+                            <div class="chart-bar" style="height: 40%; background: var(--error-color);">
+                                <span class="chart-label">Mar</span>
+                            </div>
+                            <div class="chart-bar" style="height: 70%; background: var(--success-color);">
+                                <span class="chart-label">Abr</span>
+                            </div>
+                            <div class="chart-bar" style="height: 90%; background: var(--success-color);">
+                                <span class="chart-label">May</span>
+                            </div>
+                            <div class="chart-bar" style="height: 50%; background: var(--error-color);">
+                                <span class="chart-label">Jun</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <h4>Distribución por Tipo de Cuenta</h4>
+                    <div class="chart-placeholder">
+                        <div class="pie-chart">
+                            <div class="pie-segment" style="--percentage: 60%; --color: var(--primary-color);"></div>
+                            <div class="pie-segment" style="--percentage: 30%; --color: var(--success-color);"></div>
+                            <div class="pie-segment" style="--percentage: 10%; --color: var(--warning-color);"></div>
+                        </div>
+                        <div class="chart-legend">
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: var(--primary-color);"></div>
+                                <span>Ahorros (60%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: var(--success-color);"></div>
+                                <span>Corriente (30%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: var(--warning-color);"></div>
+                                <span>Plazo Fijo (10%)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class DashboardPage {
+            constructor() {
+                this.data = {
+                    totalBalance: 15420.50,
+                    activeAccounts: 3,
+                    monthlyTransactions: 12,
+                    pendingLoans: 1,
+                    accounts: [],
+                    transactions: []
+                };
+            }
+
+            async render() {
+                return `
+                    <div id="dashboard-content">
+                        ${document.getElementById('dashboard-container').outerHTML}
+                    </div>
+                `;
+            }
+
+            async mount() {
+                await this.loadData();
+                this.updateStats();
+                this.loadRecentTransactions();
+                this.loadAccounts();
+                this.setupAutoRefresh();
+            }
+
+            async loadData() {
+                try {
+                    // Simular carga de datos desde la base de datos
+                    if (window.electronAPI?.database) {
+                        const accounts = await window.electronAPI.database.read('accounts', {});
+                        const transactions = await window.electronAPI.database.read('transactions', {});
+                        const loans = await window.electronAPI.database.read('loans', {});
+                        
+                        this.data.accounts = accounts || [];
+                        this.data.transactions = transactions || [];
+                        this.data.pendingLoans = (loans || []).filter(l => l.status === 'pending').length;
+                        
+                        // Calcular saldo total
+                        this.data.totalBalance = this.data.accounts.reduce((total, account) => {
+                            return total + (parseFloat(account.balance) || 0);
+                        }, 0);
+                        
+                        this.data.activeAccounts = this.data.accounts.length;
+                        
+                        // Transacciones del mes actual
+                        const currentMonth = new Date().getMonth();
+                        const currentYear = new Date().getFullYear();
+                        this.data.monthlyTransactions = this.data.transactions.filter(t => {
+                            const transactionDate = new Date(t.created_at);
+                            return transactionDate.getMonth() === currentMonth && 
+                                   transactionDate.getFullYear() === currentYear;
+                        }).length;
+                    } else {
+                        // Datos de demostración si no hay API
+                        this.loadDemoData();
+                    }
+                } catch (error) {
+                    console.error('Error loading dashboard data:', error);
+                    this.loadDemoData();
+                }
+            }
+
+            loadDemoData() {
+                this.data = {
+                    totalBalance: 15420.50,
+                    activeAccounts: 3,
+                    monthlyTransactions: 12,
+                    pendingLoans: 1,
+                    accounts: [
+                        {
+                            id: 1,
+                            account_number: '201234567890',
+                            account_type: 'ahorros',
+                            balance: 8420.50,
+                            status: 'active'
+                        },
+                        {
+                            id: 2,
+                            account_number: '201234567891',
+                            account_type: 'corriente',
+                            balance: 5000.00,
+                            status: 'active'
+                        },
+                        {
+                            id: 3,
+                            account_number: '201234567892',
+                            account_type: 'ahorros',
+                            balance: 2000.00,
+                            status: 'active'
+                        }
+                    ],
+                    transactions: [
+                        {
+                            id: 1,
+                            transaction_type: 'deposito',
+                            amount: 500.00,
+                            description: 'Depósito en efectivo',
+                            created_at: new Date(Date.now() - 86400000).toISOString(),
+                            account_id: 1
+                        },
+                        {
+                            id: 2,
+                            transaction_type: 'retiro',
+                            amount: -200.00,
+                            description: 'Retiro en cajero',
+                            created_at: new Date(Date.now() - 172800000).toISOString(),
+                            account_id: 1
+                        }
+                    ]
+                };
+            }
+
+            updateStats() {
+                document.getElementById('totalBalance').textContent = 
+                    window.utils.formatCurrency(this.data.totalBalance);
+                document.getElementById('activeAccounts').textContent = this.data.activeAccounts;
+                document.getElementById('monthlyTransactions').textContent = this.data.monthlyTransactions;
+                document.getElementById('pendingLoans').textContent = this.data.pendingLoans;
+            }
+
+            loadRecentTransactions() {
+                const container = document.getElementById('recentTransactions');
+                
+                if (this.data.transactions.length === 0) {
+                    return; // Ya tiene contenido vacío por defecto
+                }
+
+                const recentTransactions = this.data.transactions
+                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                    .slice(0, 5);
+
+                container.innerHTML = recentTransactions.map(transaction => `
+                    <div class="transaction-item">
+                        <div class="transaction-info">
+                            <h4>${transaction.description}</h4>
+                            <p>${window.utils.formatDate(transaction.created_at, 'datetime')}</p>
+                        </div>
+                        <div class="transaction-amount">
+                            <div class="amount ${transaction.amount >= 0 ? 'positive' : 'negative'}">
+                                ${transaction.amount >= 0 ? '+' : ''}${window.utils.formatCurrency(Math.abs(transaction.amount))}
+                            </div>
+                            <div class="date">${window.utils.formatDate(transaction.created_at, 'datetime')}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            loadAccounts() {
+                const container = document.getElementById('accountsGrid');
+                
+                if (this.data.accounts.length === 0) {
+                    return; // Ya tiene contenido vacío por defecto
+                }
+
+                container.innerHTML = this.data.accounts.map(account => `
+                    <div class="account-card">
+                        <div class="account-header">
+                            <h4>Cuenta ${window.utils.toTitleCase(account.account_type)}</h4>
+                            <span class="status-badge status-${account.status}">${window.utils.toTitleCase(account.status)}</span>
+                        </div>
+                        <div class="account-details">
+                            <div class="account-number">
+                                <small>Número de Cuenta</small>
+                                <strong>${window.utils.maskAccountNumber(account.account_number)}</strong>
+                            </div>
+                            <div class="account-balance">
+                                <small>Saldo Disponible</small>
+                                <strong class="balance-amount">${window.utils.formatCurrency(account.balance)}</strong>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            setupAutoRefresh() {
+                // Actualizar datos cada 30 segundos
+                setInterval(() => {
+                    this.loadData().then(() => {
+                        this.updateStats();
+                        this.loadRecentTransactions();
+                    });
+                }, 30000);
+            }
+        }
+
+        // Funciones globales para la página
+        function showTransferModal() {
+            window.bancoApp.showNotification('Función de transferencia en desarrollo', 'info');
+        }
+
+        function showCreateAccountModal() {
+            window.bancoApp.showCreateAccountModal();
+        }
+
+        // Instanciar la página
+        window.DashboardPage = DashboardPage;
+    </script>
+
+    <style>
+        .dashboard-container {
+            padding: 20px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .section-header h3 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .transaction-list {
+            background: var(--surface-color);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 20px;
+        }
+
+        .accounts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .account-card {
+            background: var(--surface-color);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 20px;
+        }
+
+        .account-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .account-header h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .account-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .account-number small,
+        .account-balance small {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .account-number strong,
+        .account-balance strong {
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .balance-amount {
+            font-size: 18px !important;
+            font-weight: 700 !important;
+            color: var(--success-color) !important;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .chart-container {
+            background: var(--surface-color);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 20px;
+        }
+
+        .chart-container h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .chart-placeholder {
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chart-bars {
+            display: flex;
+            align-items: end;
+            justify-content: space-around;
+            height: 100%;
+            width: 100%;
+        }
+
+        .chart-bar {
+            width: 30px;
+            background: var(--primary-color);
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            display: flex;
+            align-items: end;
+            justify-content: center;
+        }
+
+        .chart-label {
+            position: absolute;
+            bottom: -25px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .pie-chart {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: conic-gradient(
+                var(--primary-color) 0deg 216deg,
+                var(--success-color) 216deg 324deg,
+                var(--warning-color) 324deg 360deg
+            );
+            margin: 0 auto 20px;
+        }
+
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .account-details {
+                grid-template-columns: 1fr;
+            }
+
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+    </style>
+</body>
+</html>

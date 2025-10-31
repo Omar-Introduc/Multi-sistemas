@@ -1,0 +1,132 @@
+# =============================================================================
+# PROMETHEUS CONFIGURATION
+# Configuración para monitoreo del sistema distribuido Shibasito
+# =============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'shibasito'
+    environment: 'docker'
+
+# Configuración de alertas (opcional)
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+# Scraping configurations
+scrape_configs:
+  # =============================================================================
+  # PROMETHEUS SELF-MONITORING
+  # =============================================================================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 5s
+    metrics_path: /metrics
+
+  # =============================================================================
+  # SERVICIO BANCO LP1 - Java/Spring Boot
+  # =============================================================================
+  - job_name: 'servicio-banco-lp1'
+    static_configs:
+      - targets: ['servicio-banco-lp1:8081']
+    scrape_interval: 10s
+    metrics_path: /actuator/prometheus
+    scrape_timeout: 8s
+
+  # =============================================================================
+  # SERVICIO RENIEC LP2 - Python/FastAPI
+  # =============================================================================
+  - job_name: 'servicio-reniec-lp2'
+    static_configs:
+      - targets: ['servicio-reniec-lp2:8001']
+    scrape_interval: 10s
+    metrics_path: /metrics
+    scrape_timeout: 8s
+
+  # =============================================================================
+  # POSTGRESQL (BD1)
+  # =============================================================================
+  - job_name: 'postgresql-bd1'
+    static_configs:
+      - targets: ['bd1_postgresql:5432']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+
+  # =============================================================================
+  # MYSQL (BD2)
+  # =============================================================================
+  - job_name: 'mysql-bd2'
+    static_configs:
+      - targets: ['bd2_mysql:3306']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+
+  # =============================================================================
+  # RABBITMQ
+  # =============================================================================
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['rabbitmq:15692']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scrape_timeout: 5s
+
+  # =============================================================================
+  # REDIS
+  # =============================================================================
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+
+  # =============================================================================
+  # GRAFANA
+  # =============================================================================
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+
+  # =============================================================================
+  # NODE EXPORTER (si se agrega en el futuro)
+  # =============================================================================
+  # - job_name: 'node-exporter'
+  #   static_configs:
+  #     - targets: ['node-exporter:9100']
+  #   scrape_interval: 15s
+
+  # =============================================================================
+  # CADVISOR (si se agrega en el futuro)
+  # =============================================================================
+  # - job_name: 'cadvisor'
+  #   static_configs:
+  #     - targets: ['cadvisor:8080']
+  #   scrape_interval: 30s
+
+# =============================================================================
+# CONFIGURACIÓN DE REMOTE STORAGE (OPCIONAL)
+# =============================================================================
+# remote_write:
+#   - url: "http://remote-storage:8086/api/v1/prom/write?db=prometheus"
+#     queue_config:
+#       max_samples_per_send: 1000
+#       max_shards: 200
+#       capacity: 2500
+
+# =============================================================================
+# CONFIGURACIÓN DE ALERTMANAGER (OPCIONAL)
+# =============================================================================
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093

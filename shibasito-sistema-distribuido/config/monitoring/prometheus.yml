@@ -1,0 +1,132 @@
+# Configuración de Prometheus para Sistema Bancario Distribuido
+# ==============================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'shibasito-banco'
+    environment: 'production'
+
+# Configuración de alertas
+rule_files:
+  - "alerting.yml"
+
+# Configuración de scrape jobs
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 5s
+
+  # LP1 - Servicio Banco
+  - job_name: 'lp1-servicio-banco'
+    static_configs:
+      - targets: ['lp1-servicio-banco:8080']
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    labels:
+      service: 'lp1-banco'
+      tier: 'backend'
+      criticality: 'high'
+
+  # LP2 - Servicio RENIEC
+  - job_name: 'lp2-reniec-service'
+    static_configs:
+      - targets: ['lp2-reniec-service:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    labels:
+      service: 'lp2-reniec'
+      tier: 'api'
+      criticality: 'high'
+
+  # LP3 - Aplicaciones Cliente
+  - job_name: 'lp3-desktop-app'
+    static_configs:
+      - targets: ['lp3-desktop-app:3000']
+    metrics_path: '/api/metrics'
+    scrape_interval: 15s
+    labels:
+      service: 'lp3-desktop'
+      tier: 'frontend'
+      criticality: 'medium'
+
+  - job_name: 'lp3-mobile-app'
+    static_configs:
+      - targets: ['lp3-mobile-app:3001']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    labels:
+      service: 'lp3-mobile'
+      tier: 'mobile'
+      criticality: 'medium'
+
+  # RabbitMQ
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['rabbitmq:15692']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    labels:
+      service: 'rabbitmq'
+      tier: 'messaging'
+      criticality: 'high'
+
+  # Redis
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:9121']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    labels:
+      service: 'redis'
+      tier: 'cache'
+      criticality: 'high'
+
+  # MySQL
+  - job_name: 'mysql'
+    static_configs:
+      - targets: ['mysql-exporter:9104']
+    scrape_interval: 15s
+    labels:
+      service: 'mysql'
+      tier: 'database'
+      criticality: 'critical'
+
+  # PostgreSQL
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 15s
+    labels:
+      service: 'postgres'
+      tier: 'database'
+      criticality: 'critical'
+
+  # Node Exporter para métricas del sistema
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 15s
+    labels:
+      service: 'node'
+      tier: 'infrastructure'
+      criticality: 'medium'
+
+# Configuración de almacenamiento
+storage:
+  tsdb:
+    retention.time: 30d
+    retention.size: 10GB
+
+# Configuración de remote write (opcional para almacenamiento remoto)
+remote_write:
+  - url: "http://grafana-cloud:9201/write"
+    queue_config:
+      max_samples_per_send: 1000
+      max_shards: 200
+      capacity: 2500

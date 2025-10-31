@@ -1,0 +1,423 @@
+version: '3.8'
+
+# =============================================================================
+# DOCKER COMPOSE OVERRIDE - SISTEMA SHIBASITO (DESARROLLO LOCAL)
+# Configuraciones específicas para entorno de desarrollo con hot reload,
+# debugging, variables de entorno de desarrollo y volúmenes de código fuente
+# =============================================================================
+
+services:
+  # =============================================================================
+  # SERVICIO BANCO LP1 - Java/Spring Boot (DESARROLLO)
+  # =============================================================================
+  servicio-banco-lp1:
+    environment:
+      # Cambiar a perfil de desarrollo
+      SPRING_PROFILES_ACTIVE: dev
+      DEBUG: "true"
+      
+      # Configuración de desarrollo
+      SERVER_PORT: 8080
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "*"
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: always
+      MANAGEMENT_LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB: DEBUG
+      
+      # Configuración de base de datos para desarrollo (sin SSL)
+      POSTGRES_SSLMODE: disable
+      POSTGRES_CONNECT_TIMEOUT: 10
+      
+      # Configuración de Redis para desarrollo
+      REDIS_TIMEOUT: 5000
+      REDIS_LETTUCE_POOL_MAX_ACTIVE: 8
+      REDIS_LETTUCE_POOL_MAX_IDLE: 8
+      
+      # Configuración de RabbitMQ para desarrollo
+      RABBITMQ_CONNECTION_TIMEOUT: 10000
+      RABBITMQ_REQUESTED_HEARTBEAT: 60
+      
+      # Configuración de logging para desarrollo
+      LOGGING_LEVEL_ORG_HIBERNATE_SQL: DEBUG
+      LOGGING_LEVEL_ORG_HIBERNATE_TYPE_DESCRIPTOR_SQL_BASICBINDER: TRACE
+      LOGGING_LEVEL_COM_BANCO: DEBUG
+      LOGGING_PATTERN_CONSOLE: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+      
+      # Configuración de JVM para desarrollo
+      JAVA_OPTS: "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=*:5005 -Xms512m -Xmx1024m -XX:+UseG1GC -Dspring.devtools.restart.enabled=true"
+      
+      # Configuración de desarrollo adicional
+      SPRING_DEVTOOLS_RESTART_ENABLED: "true"
+      SPRING_DEVTOOLS_LIVERELOAD_ENABLED: "true"
+      MANAGEMENT_SECURITY_ENABLED: "false"
+    
+    ports:
+      # Puertos adicionales para desarrollo
+      - "8080:8080"     # Puerto de la aplicación
+      - "8081:8081"     # Puerto de management/métricas
+      - "5005:5005"     # Puerto de debugging Java
+      - "35729:35729"   # Puerto de LiveReload
+    
+    volumes:
+      # Volúmenes para hot reload - mapear código fuente completo
+      - ./lp1-servicio-banco:/app:delegated
+      - ./lp1-servicio-banco/target:/app/target:delegated
+      - ./logs/banco:/app/logs:delegated
+      # Volumen para configuración de desarrollo
+      - ./config/dev:/app/config/dev:ro
+    
+    # Sobrescribir command para desarrollo con devtools
+    command: >
+      java
+      -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+      -Dspring-boot.run.profiles=dev
+      -Dspring-boot.run.arguments=--server.port=8080
+      -cp "app:app/lib/*"
+      org.springframework.boot.loader.launch.JarLauncher
+
+    # Health check más frecuente para desarrollo
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 2
+      start_period: 30s
+
+    # Logging más verboso para desarrollo
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # =============================================================================
+  # SERVICIO RENIEC LP2 - Python/FastAPI (DESARROLLO)
+  # =============================================================================
+  servicio-reniec-lp2:
+    environment:
+      # Configuración de desarrollo
+      APP_ENV: development
+      DEBUG: "true"
+      API_HOST: "0.0.0.0"
+      API_PORT: 8000
+      RELOAD: "true"
+      
+      # Configuración de base de datos para desarrollo
+      MYSQL_SSL_MODE: "false"
+      MYSQL_CONNECT_TIMEOUT: 10
+      
+      # Configuración de Redis para desarrollo
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 1
+      REDIS_TIMEOUT: 5
+      
+      # Configuración de RabbitMQ para desarrollo
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_CONNECTION_TIMEOUT: 10
+      
+      # Configuración de logging para desarrollo
+      LOG_LEVEL: DEBUG
+      LOG_FORMAT: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+      
+      # Configuración de CORS más permisiva para desarrollo
+      CORS_ORIGINS: "http://localhost:3000,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:8080"
+      
+      # Configuración de desarrollo adicional
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      UVICORN_WORKERS: 1
+      UVICORN_LOG_LEVEL: debug
+    
+    ports:
+      # Puertos adicionales para desarrollo
+      - "8000:8000"     # Puerto de la API
+      - "8001:8001"     # Puerto de métricas
+      - "5678:5678"     # Puerto de debugging Python
+    
+    volumes:
+      # Volúmenes para hot reload - mapear código fuente completo
+      - ./lp2_reniec_service:/app:delegated
+      - ./logs/reniec:/app/logs:delegated
+      # Volumen para configuración de desarrollo
+      - ./config/dev:/app/config/dev:ro
+    
+    # Sobrescribir command para desarrollo con auto-reload
+    command: >
+      sh -c "
+        pip install -e . &&
+        uvicorn main:app 
+        --host 0.0.0.0 
+        --port 8000 
+        --reload 
+        --reload-dir /app 
+        --log-level debug
+        --access-log
+      "
+
+    # Health check más frecuente para desarrollo
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 2
+      start_period: 30s
+
+    # Logging más verboso para desarrollo
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # =============================================================================
+  # POSTGRESQL BD1 - Configuración para desarrollo
+  # =============================================================================
+  bd1_postgresql:
+    environment:
+      # Variables de desarrollo
+      POSTGRES_LOGGING_COLLECTOR: "on"
+      POSTGRES_LOG_MIN_DURATION_STATEMENT: 1000  # Log queries > 1s
+      POSTGRES_LOG_LINE_PREFIX: "%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h "
+    
+    ports:
+      - "5432:5432"
+      - "5433:5432"  # Puerto adicional para desarrollo
+    
+    volumes:
+      # Mapeo de scripts de desarrollo
+      - ./init-scripts/postgres:/docker-entrypoint-initdb.d:ro
+      - ./lp1-servicio-banco/src/main/resources/db/migration:/docker-entrypoint-initdb.d/migration:ro
+    
+    # Comando con configuración más permisiva para desarrollo
+    command: >
+      postgres
+      -c logging_collector=on
+      -c log_destination=stderr
+      -c log_directory=/var/log/postgresql
+      -c log_filename=postgresql-%Y-%m-%d_%H%M%S.log
+      -c log_statement=all
+      -c log_connections=on
+      -c log_disconnections=on
+      -c log_min_duration_statement=1000
+      -c shared_preload_libraries=pg_stat_statements
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c work_mem=4MB
+      -c maintenance_work_mem=64MB
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-banco_user} -d banco_db"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+
+  # =============================================================================
+  # MYSQL BD2 - Configuración para desarrollo
+  # =============================================================================
+  bd2_mysql:
+    environment:
+      # Variables de desarrollo
+      MYSQL_LOG_ERROR: "/var/log/mysql/error.log"
+      MYSQL_GENERAL_LOG: "1"
+      MYSQL_GENERAL_LOG_FILE: "/var/log/mysql/general.log"
+      MYSQL_SLOW_QUERY_LOG: "1"
+      MYSQL_SLOW_QUERY_LOG_FILE: "/var/log/mysql/slow.log"
+      MYSQL_LONG_QUERY_TIME: "2"
+    
+    ports:
+      - "3306:3306"
+      - "3307:3306"  # Puerto adicional para desarrollo
+    
+    volumes:
+      # Mapeo de scripts de desarrollo
+      - ./init-scripts/mysql:/docker-entrypoint-initdb.d:ro
+      - ./lp2_reniec_service/migrations:/docker-entrypoint-initdb.d/migrations:ro
+    
+    # Comando con configuración más permisiva para desarrollo
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --log-error=/var/log/mysql/error.log
+      --general-log=1
+      --general-log-file=/var/log/mysql/general.log
+      --slow-query-log=1
+      --slow-query-log-file=/var/log/mysql/slow.log
+      --long-query-time=2
+      --max-connections=200
+      --innodb-buffer-pool-size=256M
+      --innodb-log-file-size=64M
+      --query-cache-size=32M
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER:-reniec_user}", "-p${MYSQL_PASSWORD:-reniec_pass123}"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+
+  # =============================================================================
+  # RABBITMQ - Configuración para desarrollo
+  # =============================================================================
+  rabbitmq:
+    environment:
+      # Configuración de desarrollo
+      RABBITMQ_LOG_LEVEL: info
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbit log_levels [{connection,info},{default,info}]"
+      RABBITMQ_VM_MEMORY_HIGH_WATERMARK: 0.8
+    
+    ports:
+      - "5672:5672"    # Puerto AMQP
+      - "15672:15672"  # Puerto Management UI
+      - "15671:15671"  # Puerto Management API
+      - "15674:15674"  # Puerto adicional para desarrollo
+    
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_logs:/var/log/rabbitmq
+      - ./rabbitmq-config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./rabbitmq-config/definitions.json:/etc/rabbitmq/definitions.json:ro
+    
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+
+  # =============================================================================
+  # REDIS - Configuración para desarrollo
+  # =============================================================================
+  redis:
+    environment:
+      # Configuración de desarrollo
+      REDIS_APPENDONLY: "yes"
+      REDIS_APPENDFSYNC: everysec
+      REDIS_MAXMEMORY: 512mb
+      REDIS_MAXMEMORY_POLICY: allkeys-lru
+    
+    ports:
+      - "6379:6379"
+      - "6380:6379"  # Puerto adicional para desarrollo
+    
+    volumes:
+      - redis_data:/data
+      - ./redis-config/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    
+    command: >
+      redis-server /usr/local/etc/redis/redis.conf 
+      --requirepass ${REDIS_PASSWORD:-redispass123}
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+
+  # =============================================================================
+  # PROMETHEUS - Configuración para desarrollo
+  # =============================================================================
+  prometheus:
+    ports:
+      - "9090:9090"
+      - "9091:9090"  # Puerto adicional para desarrollo
+    
+    volumes:
+      - prometheus_data:/prometheus
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/prometheus/rules:/etc/prometheus/rules:ro
+    
+    # Comando con configuraciones de desarrollo
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      - '--storage.tsdb.retention.time=7d'  # Retención más corta para desarrollo
+      - '--web.external-url=http://localhost:9090'
+      - '--query.timeout=2m'
+      - '--query.max-concurrency=20'
+    
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 20s
+      timeout: 5s
+      retries: 2
+      start_period: 30s
+
+  # =============================================================================
+  # GRAFANA - Configuración para desarrollo
+  # =============================================================================
+  grafana:
+    environment:
+      # Variables de desarrollo
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin123}
+      GF_USERS_ALLOW_SIGN_UP: true  # Permitir registro en desarrollo
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      
+      # Configuración de desarrollo
+      GF_DATABASE_TYPE: sqlite3
+      GF_DATABASE_PATH: /var/lib/grafana/grafana.db
+      GF_SERVER_HTTP_PORT: 3000
+      GF_SERVER_ROOT_URL: http://localhost:3000
+      GF_RENDERING_SERVER_URL: http://localhost:8081/render
+      GF_LOG_FILTERS: rendering:debug
+      
+      # Configuración de plugins para desarrollo
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel
+      
+      # Configuración de alertas
+      GF_ALERTING_ENABLED: true
+      
+      # Configuración de métricas
+      GF_METRICS_ENABLED: true
+      GF_METRICS_INTERVAL_SECONDS: 5  # Métricas más frecuentes para desarrollo
+    
+    ports:
+      - "3000:3000"
+      - "3001:3000"  # Puerto adicional para desarrollo
+    
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 2
+      start_period: 45s
+
+# =============================================================================
+# CONFIGURACIÓN DE DESARROLLO ADICIONAL
+# =============================================================================
+
+# Variables de entorno globales para desarrollo
+x-development-variables: &development-variables
+  # Configuración general
+  ENVIRONMENT: development
+  DEBUG_MODE: "true"
+  
+  # Timeouts reducidos para desarrollo
+  DATABASE_CONNECTION_TIMEOUT: 10
+  CACHE_CONNECTION_TIMEOUT: 5
+  MESSAGE_QUEUE_TIMEOUT: 10
+  
+  # Logging
+  LOG_LEVEL: DEBUG
+  CONSOLE_LOG_FORMAT: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # Configuración de red
+  NETWORK_TIMEOUT: 30
+  REQUEST_TIMEOUT: 60

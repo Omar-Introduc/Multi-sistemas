@@ -1,0 +1,152 @@
+{
+  "name": "desktop-app",
+  "version": "1.0.0",
+  "description": "Aplicación desktop desarrollada con Electron y Node.js 18",
+  "main": "src/main/main.js",
+  "homepage": "http://localhost:3000",
+  "author": {
+    "name": "Tu Nombre",
+    "email": "tu@email.com"
+  },
+  "license": "MIT",
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development concurrently -k \"npm run electron:dev\" \"npm run react:start\"",
+    "start": "cross-env NODE_ENV=production electron .",
+    "electron:dev": "cross-env ELECTRON_IS_DEV=true electron . --inspect",
+    "electron:start": "electron .",
+    "react:start": "react-scripts start",
+    "build": "react-scripts build",
+    "build:clean": "rimraf dist builds && react-scripts build",
+    "test": "react-scripts test",
+    "test:coverage": "react-scripts test --coverage --watchAll=false",
+    "eject": "react-scripts eject",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write src/",
+    "electron:build": "npm run build:clean && electron-builder",
+    "dist": "npm run electron:build",
+    "dist:win": "npm run electron:build -- --win",
+    "dist:mac": "npm run electron:build -- --mac",
+    "dist:linux": "npm run electron:build -- --linux",
+    "pack": "electron-builder --dir",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "build": {
+    "appId": "com.empresa.desktop-app",
+    "productName": "Desktop App",
+    "version": "1.0.0",
+    "copyright": "Copyright © ${author} ${year}",
+    "directories": {
+      "output": "builds"
+    },
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "src/main/main.js",
+      "src/main/preload.js"
+    ],
+    "mac": {
+      "icon": "public/icon.icns",
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["x64", "arm64"]
+        }
+      ]
+    },
+    "win": {
+      "icon": "public/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "linux": {
+      "icon": "public/icon.png",
+      "category": "Office",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        },
+        {
+          "target": "deb",
+          "arch": ["x64"]
+        },
+        {
+          "target": "rpm",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Desktop App"
+    },
+    "dmg": {
+      "title": "Desktop App",
+      "icon": "public/icon.icns",
+      "format": "ULFO"
+    }
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "electron-is-dev": "^2.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0",
+    "cross-env": "^7.0.3",
+    "electron": "^24.3.1",
+    "electron-builder": "^24.2.1",
+    "rimraf": "^4.4.1",
+    "eslint": "^8.41.0",
+    "eslint-config-react-app": "^7.0.1",
+    "prettier": "^2.8.8",
+    "@testing-library/react": "^14.0.0",
+    "@testing-library/jest-dom": "^5.16.5"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usuario/desktop-app.git"
+  },
+  "keywords": [
+    "electron",
+    "desktop",
+    "react",
+    "nodejs",
+    "javascript"
+  ]
+}

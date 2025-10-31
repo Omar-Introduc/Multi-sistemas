@@ -1,0 +1,197 @@
+# Docker Compose para Health Checks
+# Ejemplo de configuración para ejecutar health checks en contenedores
+
+version: '3.8'
+
+services:
+  # Servicio principal de health checks
+  health-checks:
+    build: .
+    container_name: health-checks-monitor
+    restart: unless-stopped
+    volumes:
+      - ./config.env:/app/config.env:ro
+      - ./logs:/app/logs
+      - ./reports:/app/reports
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - ENVIRONMENT=docker
+      - SCRIPT_DIR=/app
+    env_file:
+      - ./config.env
+    networks:
+      - monitoring
+    depends_on:
+      - postgresql
+      - redis
+      - rabbitmq
+    labels:
+      - "healthcheck.interval=300s"
+      - "healthcheck.timeout=30s"
+      - "healthcheck.retries=3"
+
+  # Base de datos PostgreSQL
+  postgresql:
+    image: postgres:13
+    container_name: health-check-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: health_check_db
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: secure_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_user -d health_check_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Base de datos MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: health-check-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: health_check_db
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: mysql_password
+      MYSQL_ROOT_PASSWORD: root_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "app_user", "-pmysql_password"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis
+  redis:
+    image: redis:6-alpine
+    container_name: health-check-redis
+    restart: unless-stopped
+    command: redis-server --requirepass redis_password
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: health-check-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: rabbitmq_password
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx (opcional - para web services)
+  nginx:
+    image: nginx:alpine
+    container_name: health-check-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    networks:
+      - monitoring
+    depends_on:
+      - postgresql
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prometheus (opcional - para métricas)
+  prometheus:
+    image: prom/prometheus
+    container_name: health-check-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - monitoring
+    profiles:
+      - monitoring
+
+  # Grafana (opcional - para visualización)
+  grafana:
+    image: grafana/grafana
+    container_name: health-check-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin_password
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - monitoring
+    profiles:
+      - monitoring
+
+volumes:
+  postgres_data:
+    driver: local
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  monitoring:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

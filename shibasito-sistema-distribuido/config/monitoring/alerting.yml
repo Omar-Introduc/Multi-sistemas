@@ -1,0 +1,250 @@
+# Reglas de Alertas para Sistema Bancario Distribuido
+# =====================================================
+
+groups:
+  - name: sistema_bancario_critico
+    interval: 30s
+    rules:
+      # Alertas críticas de servicios
+      - alert: ServicioBancoNoDisponible
+        expr: up{job="lp1-servicio-banco"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: lp1-banco
+          category: availability
+        annotations:
+          summary: "Servicio de Banco LP1 no disponible"
+          description: "El servicio de banco LP1 ha estado inactivo por más de 1 minuto"
+
+      - alert: ServicioRENEICNoDisponible
+        expr: up{job="lp2-reniec-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: lp2-reniec
+          category: availability
+        annotations:
+          summary: "Servicio RENIEC LP2 no disponible"
+          description: "El servicio RENIEC LP2 ha estado inactivo por más de 1 minuto"
+
+      - alert: AplicacionesClienteNoDisponibles
+        expr: up{job=~"lp3-.*"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: lp3-cliente
+          category: availability
+        annotations:
+          summary: "Aplicaciones cliente LP3 no disponibles"
+          description: "Las aplicaciones cliente LP3 han estado inactivas por más de 2 minutos"
+
+      # Alertas de rendimiento del servicio banco
+      - alert: AltoTiempoRespuestaBanco
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="lp1-servicio-banco"}[5m])) > 2
+        for: 3m
+        labels:
+          severity: warning
+          service: lp1-banco
+          category: performance
+        annotations:
+          summary: "Alto tiempo de respuesta en servicio banco"
+          description: "El 95% de las requests al servicio banco están tardando más de 2 segundos"
+
+      - alert: AltoTiempoRespuestaRENIEC
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="lp2-reniec-service"}[5m])) > 3
+        for: 3m
+        labels:
+          severity: warning
+          service: lp2-reniec
+          category: performance
+        annotations:
+          summary: "Alto tiempo de respuesta en servicio RENIEC"
+          description: "El 95% de las requests al servicio RENIEC están tardando más de 3 segundos"
+
+      # Alertas de base de datos
+      - alert: BaseDatosMySQLNoDisponible
+        expr: up{job="mysql"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: mysql
+          category: database
+        annotations:
+          summary: "Base de datos MySQL no disponible"
+          description: "La base de datos MySQL está inaccesible - CRÍTICO para operaciones bancarias"
+
+      - alert: BaseDatosPostgreSQLNoDisponible
+        expr: up{job="postgres"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: postgres
+          category: database
+        annotations:
+          summary: "Base de datos PostgreSQL no disponible"
+          description: "La base de datos PostgreSQL está inaccesible - CRÍTICO para operaciones bancarias"
+
+      - alert: AltaConexionesBaseDatos
+        expr: mysql_global_status_threads_connected / mysql_global_variables_max_connections > 0.8
+        for: 2m
+        labels:
+          severity: warning
+          service: mysql
+          category: database
+        annotations:
+          summary: "Alto número de conexiones en MySQL"
+          description: "MySQL está usando más del 80% de sus conexiones máximas"
+
+      # Alertas de RabbitMQ
+      - alert: RabbitMQNoDisponible
+        expr: up{job="rabbitmq"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: rabbitmq
+          category: messaging
+        annotations:
+          summary: "RabbitMQ no disponible"
+          description: "RabbitMQ está inaccesible - puede afectar la mensajería entre servicios"
+
+      - alert: RabbitMQColaMensajesAlta
+        expr: rabbitmq_queue_messages > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: rabbitmq
+          category: messaging
+        annotations:
+          summary: "Cola de mensajes RabbitMQ con alto volumen"
+          description: "La cola de mensajes tiene más de 1000 mensajes pendientes"
+
+      # Alertas de Redis
+      - alert: RedisNoDisponible
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+          category: cache
+        annotations:
+          summary: "Redis no disponible"
+          description: "Redis está inaccesible - puede afectar el cache del sistema"
+
+      - alert: RedisAltoUsoMemoria
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+          category: cache
+        annotations:
+          summary: "Redis usando alta cantidad de memoria"
+          description: "Redis está usando más del 90% de su memoria asignada"
+
+      # Alertas de métricas de negocio
+      - alert: TransaccionesBancariasBajas
+        expr: rate(banco_transacciones_total[10m]) < 1
+        for: 10m
+        labels:
+          severity: info
+          service: lp1-banco
+          category: business
+        annotations:
+          summary: "Bajo volumen de transacciones bancarias"
+          description: "El volumen de transacciones bancarias está por debajo del promedio esperado"
+
+      - alert: ConsultasRENIECElevadas
+        expr: rate(reniec_consultas_total[5m]) > 100
+        for: 2m
+        labels:
+          severity: warning
+          service: lp2-reniec
+          category: business
+        annotations:
+          summary: "Alto volumen de consultas RENIEC"
+          description: "El servicio RENIEC está procesando más de 100 consultas por minuto"
+
+      # Alertas de infraestructura
+      - alert: AltoUsoCPU
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+          category: system
+        annotations:
+          summary: "Alto uso de CPU"
+          description: "El uso de CPU está por encima del 80% por más de 5 minutos"
+
+      - alert: AltoUsoMemoria
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+          category: system
+        annotations:
+          summary: "Alto uso de memoria"
+          description: "El uso de memoria está por encima del 85% por más de 5 minutos"
+
+      - alert: EspacioDiscoBajo
+        expr: (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: critical
+          service: infrastructure
+          category: system
+        annotations:
+          summary: "Espacio en disco bajo"
+          description: "El espacio disponible en disco está por debajo del 15%"
+
+  - name: seguridad_bancaria
+    interval: 60s
+    rules:
+      - alert: IntentosAccesoFallidosAltos
+        expr: rate(authentication_failures_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: security
+          category: authentication
+        annotations:
+          summary: "Múltiples intentos de acceso fallidos"
+          description: "Se han detectado más de 10 intentos de autenticación fallidos por minuto"
+
+      - alert: OperacionesSospechosas
+        expr: rate(fraud_operations_total[10m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+          service: security
+          category: fraud
+        annotations:
+          summary: "Operaciones potencialmente fraudulentas detectadas"
+          description: "Se han detectado más de 5 operaciones sospechosas por minuto"
+
+  - name: sla_compliance
+    interval: 60s
+    rules:
+      - alert: SlaTiempoRespuestaViolado
+        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: sla
+          category: performance
+        annotations:
+          summary: "SLA de tiempo de respuesta violado"
+          description: "El 99% de las requests están tardando más de 5 segundos"
+
+      - alert: SlaDisponibilidadViolado
+        expr: avg_over_time(up[1h]) < 0.99
+        for: 10m
+        labels:
+          severity: critical
+          service: sla
+          category: availability
+        annotations:
+          summary: "SLA de disponibilidad violado"
+          description: "La disponibilidad en la última hora está por debajo del 99%"

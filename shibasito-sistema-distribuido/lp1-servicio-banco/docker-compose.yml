@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  lp1-servicio-banco:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lp1-servicio-banco
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - JAVA_OPTS=-Xms512m -Xmx1024m -XX:+UseG1GC
+      - SERVER_PORT=8080
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - banco-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  banco-network:
+    driver: bridge
+
+volumes:
+  logs:

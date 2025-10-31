@@ -1,0 +1,109 @@
+# Configuración de Datasources para Grafana
+# Sistema Bancario Distribuido - Shibasito
+# ==========================================
+
+apiVersion: 1
+
+datasources:
+  # Prometheus Principal
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: "15s"
+      queryTimeout: "60s"
+      httpMethod: "POST"
+      manageAlerts: true
+      alertmanagerUid: "alertmanager"
+    secureJsonData: {}
+
+  # AlertManager
+  - name: AlertManager
+    type: alertmanager
+    access: proxy
+    url: http://alertmanager:9093
+    editable: true
+    jsonData:
+      implementation: "prometheus"
+
+  # Loki para Logs (opcional)
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: true
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        - datasourceUid: 'prometheus'
+          matcherRegex: 'trace_id=(\\w+)'
+          name: 'TraceID'
+          url: '/explore?left=[%22now-1h%22,%22now%22,%22Tempo%22,{%22query%22:%22$${__value.raw}%22}]'
+
+  # Tempo para Tracing (opcional)
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: true
+    jsonData:
+      httpMethod: 'GET'
+      tracesToLogs:
+        datasourceUid: 'loki'
+        tags: ['job', 'instance', 'pod', 'namespace']
+        mappedTags: [{ key: 'service.name', value: 'service' }]
+        mapTagNamesEnabled: false
+        spanStartTimeShift: '1h'
+        spanEndTimeShift: '1h'
+        filterByTraceID: false
+        filterBySpanID: false
+
+  # MySQL para Métricas de Negocio
+  - name: MySQL-Banco
+    type: mysql
+    access: proxy
+    url: mysql:3306
+    database: banco_lp1
+    user: root
+    secureJsonData:
+      password: ${MYSQL_ROOT_PASSWORD}
+    isDefault: false
+    editable: true
+    jsonData:
+      maxOpenConns: 10
+      maxIdleConns: 5
+      connMaxLifetime: 14400
+      database: banco_lp1
+
+  # PostgreSQL para Métricas de Negocio
+  - name: PostgreSQL-RENIEC
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    database: reniec_lp2
+    user: postgres
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
+    isDefault: false
+    editable: true
+    jsonData:
+      maxOpenConns: 10
+      maxIdleConns: 5
+      connMaxLifetime: 14400
+      sslmode: disable
+
+  # CloudWatch para AWS (si aplica)
+  - name: CloudWatch
+    type: cloudwatch
+    access: proxy
+    editable: true
+    jsonData:
+      authType: keys
+      defaultRegion: us-west-2
+      customMetricsNamespaces: 'BankMetrics/Custom'
+    secureJsonData:
+      accessKey: ${CLOUDWATCH_ACCESS_KEY}
+      secretKey: ${CLOUDWATCH_SECRET_KEY}

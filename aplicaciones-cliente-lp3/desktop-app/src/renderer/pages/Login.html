@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - Banco Desktop</title>
+    <link href="../../renderer/css/main.css" rel="stylesheet">
+    <link href="../../renderer/css/components.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="login-container-full">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="bank-logo">
+                    <i class="fas fa-university"></i>
+                </div>
+                <h1>Banco Desktop</h1>
+                <p>Sistema de Gestión Bancaria v1.0</p>
+            </div>
+            
+            <div class="login-form-container">
+                <form id="loginForm" class="login-form">
+                    <div class="form-group">
+                        <label for="username">Usuario</label>
+                        <div class="input-group">
+                            <i class="fas fa-user input-icon"></i>
+                            <input 
+                                type="text" 
+                                id="username" 
+                                name="username" 
+                                placeholder="Ingrese su usuario"
+                                required 
+                                autocomplete="username"
+                            >
+                        </div>
+                        <div class="input-hint">
+                            <small>Usuarios de prueba: admin, usuario, banco</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Contraseña</label>
+                        <div class="input-group">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input 
+                                type="password" 
+                                id="password" 
+                                name="password" 
+                                placeholder="Ingrese su contraseña"
+                                required 
+                                autocomplete="current-password"
+                            >
+                            <button type="button" class="password-toggle" onclick="togglePassword()">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="input-hint">
+                            <small>Contraseñas de prueba: admin123, 123456, banco2023</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-options">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="rememberMe">
+                            <span class="checkmark"></span>
+                            Recordar sesión
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-full" id="loginButton">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Iniciar Sesión</span>
+                        <div class="loading-spinner-small hidden">
+                            <div class="spinner"></div>
+                        </div>
+                    </button>
+                </form>
+                
+                <div id="loginError" class="alert alert-error hidden">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="errorMessage"></span>
+                </div>
+            </div>
+            
+            <div class="login-footer">
+                <div class="login-features">
+                    <div class="feature-item">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Seguridad Bancaria</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-clock"></i>
+                        <span>Disponible 24/7</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-mobile-alt"></i>
+                        <span>Multiplataforma</span>
+                    </div>
+                </div>
+                
+                <div class="login-version">
+                    <small>Banco Desktop v1.0.0 - LP3 Project</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="login-background">
+            <div class="bg-pattern"></div>
+            <div class="bg-overlay"></div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle password visibility
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const toggleButton = document.querySelector('.password-toggle i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleButton.classList.remove('fa-eye');
+                toggleButton.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleButton.classList.remove('fa-eye-slash');
+                toggleButton.classList.add('fa-eye');
+            }
+        }
+
+        // Login form handling
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('loginForm');
+            const loginButton = document.getElementById('loginButton');
+            const loginError = document.getElementById('loginError');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(loginForm);
+                const username = formData.get('username');
+                const password = formData.get('password');
+                const rememberMe = document.getElementById('rememberMe').checked;
+                
+                if (!username || !password) {
+                    showError('Por favor complete todos los campos');
+                    return;
+                }
+                
+                // Show loading state
+                setLoading(true);
+                hideError();
+                
+                try {
+                    // Simular autenticación
+                    const result = await authenticateUser(username, password);
+                    
+                    if (result.success) {
+                        // Save session if remember me is checked
+                        if (rememberMe) {
+                            localStorage.setItem('rememberUser', username);
+                        }
+                        
+                        // Redirect to main app
+                        window.location.href = '#dashboard';
+                        location.reload();
+                    } else {
+                        showError(result.error || 'Credenciales inválidas');
+                    }
+                } catch (error) {
+                    showError('Error de conexión: ' + error.message);
+                } finally {
+                    setLoading(false);
+                }
+            });
+            
+            function showError(message) {
+                errorMessage.textContent = message;
+                loginError.classList.remove('hidden');
+            }
+            
+            function hideError() {
+                loginError.classList.add('hidden');
+            }
+            
+            function setLoading(loading) {
+                const buttonText = loginButton.querySelector('span');
+                const spinner = loginButton.querySelector('.loading-spinner-small');
+                
+                if (loading) {
+                    buttonText.classList.add('hidden');
+                    spinner.classList.remove('hidden');
+                    loginButton.disabled = true;
+                } else {
+                    buttonText.classList.remove('hidden');
+                    spinner.classList.add('hidden');
+                    loginButton.disabled = false;
+                }
+            }
+            
+            async function authenticateUser(username, password) {
+                // Simular delay de red
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Credenciales de prueba
+                const validCredentials = {
+                    'admin': { password: 'admin123', role: 'admin', name: 'Administrador' },
+                    'usuario': { password: '123456', role: 'user', name: 'Usuario Demo' },
+                    'banco': { password: 'banco2023', role: 'admin', name: 'Sistema Bancario' }
+                };
+                
+                const userData = validCredentials[username];
+                
+                if (userData && userData.password === password) {
+                    const user = {
+                        id: Date.now(),
+                        username,
+                        name: userData.name,
+                        role: userData.role,
+                        email: `${username}@banco.com`,
+                        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name)}&background=2563eb&color=fff`,
+                        lastLogin: new Date().toISOString()
+                    };
+                    
+                    // Simular guardado de sesión
+                    if (window.electronAPI?.store) {
+                        await window.electronAPI.store.set('currentUser', user);
+                        await window.electronAPI.store.set('authToken', 'demo_token_' + Date.now());
+                    }
+                    
+                    return { success: true, user };
+                } else {
+                    return { success: false, error: 'Usuario o contraseña incorrectos' };
+                }
+            }
+            
+            // Load remembered user
+            const rememberedUser = localStorage.getItem('rememberUser');
+            if (rememberedUser) {
+                document.getElementById('username').value = rememberedUser;
+                document.getElementById('rememberMe').checked = true;
+            }
+            
+            // Enter key handling
+            document.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') {
+                    loginForm.dispatchEvent(new Event('submit'));
+                }
+            });
+        });
+    </script>
+
+    <style>
+        .login-container-full {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .login-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .bg-pattern {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+            background-size: 100px 100px;
+        }
+
+        .bg-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            margin: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .bank-logo {
+            font-size: 48px;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .login-header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .login-header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            z-index: 1;
+        }
+
+        .input-group input {
+            padding-left: 45px;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            z-index: 1;
+        }
+
+        .input-hint {
+            margin-top: 5px;
+            padding-left: 15px;
+        }
+
+        .input-hint small {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .form-options {
+            margin: 20px 0;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .checkbox-container input {
+            margin-right: 10px;
+        }
+
+        .btn-full {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .loading-spinner-small {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .login-footer {
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        .login-features {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+
+        .feature-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .feature-item i {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: var(--primary-color);
+        }
+
+        .login-version {
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .login-version small {
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .login-card {
+                margin: 10px;
+                padding: 30px 20px;
+            }
+
+            .login-features {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .feature-item {
+                flex-direction: row;
+                justify-content: center;
+                gap: 10px;
+            }
+        }
+    </style>
+</body>
+</html>

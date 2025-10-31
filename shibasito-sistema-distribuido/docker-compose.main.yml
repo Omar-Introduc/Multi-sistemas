@@ -1,0 +1,824 @@
+version: '3.8'
+
+# =============================================================================
+# DOCKER COMPOSE - SISTEMA DISTRIBUIDO SHIBASITO
+# Configuración optimizada de servicios con soporte completo
+# =============================================================================
+
+networks:
+  # Red principal para comunicación entre servicios
+  shibasito-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: shibasito-main
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+          ip_range: 172.20.1.0/24
+          aux_addresses:
+            gateway: 172.20.0.1
+            host: 172.20.0.2
+  
+  # Red para servicios de base de datos
+  database-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: shibasito-db
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.0.0/16
+          gateway: 172.21.0.1
+          ip_range: 172.21.1.0/24
+          aux_addresses:
+            gateway: 172.21.0.1
+            host: 172.21.0.2
+  
+  # Red para servicios de monitoreo
+  monitoring-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: shibasito-mon
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.22.0.0/16
+          gateway: 172.22.0.1
+          ip_range: 172.22.1.0/24
+          aux_addresses:
+            gateway: 172.22.0.1
+            host: 172.22.0.2
+
+volumes:
+  # Volúmenes para persistencia de datos de PostgreSQL
+  postgres_bd1_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/postgres/bd1
+  postgres_bd1_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs/postgres/bd1
+  postgres_bd1_backup:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./backup/postgres/bd1
+  
+  # Volúmenes para persistencia de datos de MySQL
+  mysql_bd2_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/mysql/bd2
+  mysql_bd2_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs/mysql/bd2
+  mysql_bd2_backup:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./backup/mysql/bd2
+  
+  # Volúmenes para RabbitMQ
+  rabbitmq_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/rabbitmq
+  rabbitmq_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs/rabbitmq
+  
+  # Volúmenes para Redis
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/redis
+  redis_backup:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./backup/redis
+  
+  # Volúmenes para Prometheus
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/prometheus
+  
+  # Volúmenes para Grafana
+  grafana_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/grafana
+
+services:
+  # =============================================================================
+  # SERVICIO BANCO LP1 - Java/Spring Boot
+  # =============================================================================
+  servicio-banco-lp1:
+    build:
+      context: ./lp1-servicio-banco
+      dockerfile: Dockerfile
+    container_name: banco-lp1-container
+    restart: unless-stopped
+    environment:
+      # Configuración de la aplicación
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+      JAVA_OPTS: "-Xmx512m -Xms256m"
+      
+      # Configuración de base de datos PostgreSQL (bd1)
+      POSTGRES_HOST: bd1_postgresql
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: banco_db
+      POSTGRES_USER: ${POSTGRES_USER:-banco_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-banco_pass123}
+      
+      # Configuración de Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      
+      # Configuración de RabbitMQ
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-admin123}
+      RABBITMQ_VHOST: /banco
+      
+      # Configuración de monitoreo
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: always
+      MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED: true
+    
+    ports:
+      - "8080:8080"  # Puerto de la aplicación
+      - "8081:8081"  # Puerto de management/métricas
+    
+    networks:
+      shibasito-network:
+        ipv4_address: 172.20.10.10
+    
+    volumes:
+      - ./logs/banco:/app/logs
+    
+    # Configuración de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+        labels: "service=servicio-banco-lp1"
+        tag: "{{.Name}}/{{.ID}}"
+    
+    depends_on:
+      bd1_postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+      disable: false
+
+  # =============================================================================
+  # SERVICIO RENIEC LP2 - Python/FastAPI
+  # =============================================================================
+  servicio-reniec-lp2:
+    build:
+      context: ./lp2_reniec_service
+      dockerfile: Dockerfile
+    container_name: reniec-lp2-container
+    restart: unless-stopped
+    environment:
+      # Configuración de la aplicación
+      APP_ENV: docker
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      DEBUG: false
+      
+      # Configuración de base de datos MySQL (bd2)
+      MYSQL_HOST: bd2_mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: reniec_db
+      MYSQL_USER: ${MYSQL_USER:-reniec_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-reniec_pass123}
+      
+      # Configuración de Redis para caché
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 1
+      
+      # Configuración de RabbitMQ
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-admin123}
+      RABBITMQ_VHOST: /reniec
+      
+      # Configuración de logging
+      LOG_LEVEL: INFO
+      
+      # Configuración de CORS
+      CORS_ORIGINS: "*"
+    
+    ports:
+      - "8000:8000"  # Puerto de la API
+      - "8001:8001"  # Puerto de métricas
+    
+    networks:
+      shibasito-network:
+        ipv4_address: 172.20.10.20
+    
+    volumes:
+      - ./logs/reniec:/app/logs
+    
+    # Configuración de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+        labels: "service=servicio-reniec-lp2"
+        tag: "{{.Name}}/{{.ID}}"
+    
+    depends_on:
+      bd2_mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+      disable: false
+
+  # =============================================================================
+  # BASE DE DATOS POSTGRESQL (BD1) - Servicio Banco
+  # Configuración optimizada con seguridad, límites de memoria y backup automático
+  # =============================================================================
+  bd1_postgresql:
+    image: postgres:15-alpine
+    container_name: postgresql-bd1-container
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    environment:
+      POSTGRES_DB: banco_db
+      POSTGRES_USER: ${POSTGRES_USER:-banco_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-banco_pass123}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      
+      # Configuración adicional
+      POSTGRES_MULTIPLE_DATABES: banco_db,audit_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+      
+      # Configuración de seguridad mejorada
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C --auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    
+    ports:
+      - "5432:5432"
+    
+    networks:
+      database-network:
+        ipv4_address: 172.21.10.10
+      shibasito-network:
+        ipv4_address: 172.20.10.30
+    
+    volumes:
+      - postgres_bd1_data:/var/lib/postgresql/data
+      - postgres_bd1_logs:/var/log/postgresql
+      - postgres_bd1_backup:/backup
+      - ./init-scripts/postgres:/docker-entrypoint-initdb.d
+      - ./scripts/postgres-backup.sh:/usr/local/bin/backup.sh:ro
+    
+    # Configuración de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "10"
+        labels: "service=bd1_postgresql"
+        tag: "{{.Name}}/{{.ID}}"
+    
+    command: >
+      bash -c '
+        # Configuración de memoria y performance
+        postgres
+        -c max_connections=100
+        -c shared_buffers=256MB
+        -c effective_cache_size=768MB
+        -c maintenance_work_mem=64MB
+        -c checkpoint_completion_target=0.9
+        -c wal_buffers=16MB
+        -c default_statistics_target=100
+        -c random_page_cost=1.1
+        -c effective_io_concurrency=200
+        
+        # Configuración de logging
+        -c logging_collector=on
+        -c log_destination=stderr
+        -c log_directory=/var/log/postgresql
+        -c log_filename=postgresql-%Y-%m-%d_%H%M%S.log
+        -c log_statement=all
+        -c log_connections=on
+        -c log_disconnections=on
+        -c log_lock_waits=on
+        -c log_temp_files=0
+        
+        # Configuración de seguridad
+        -c ssl=off
+        -c password_encryption=scram-sha-256
+        -c shared_preload_libraries=pg_stat_statements
+        
+        # Configuración de backup y WAL
+        -c wal_level=replica
+        -c max_wal_senders=3
+        -c checkpoint_timeout=15min
+        -c max_wal_size=1GB
+        -c min_wal_size=80MB
+      '
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-banco_user} -d banco_db -h localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 40s
+      disable: false
+    
+    # Script de backup automático cada 6 horas
+    labels:
+      - "backup.schedule=0 */6 * * *"
+      - "backup.retention=7d"
+
+  # =============================================================================
+  # BASE DE DATOS MYSQL (BD2) - Servicio RENIEC
+  # Configuración optimizada con seguridad, límites de memoria y backup automático
+  # =============================================================================
+  bd2_mysql:
+    image: mysql:8.0
+    container_name: mysql-bd2-container
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass123}
+      MYSQL_DATABASE: reniec_db
+      MYSQL_USER: ${MYSQL_USER:-reniec_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-reniec_pass123}
+      
+      # Configuración adicional
+      MYSQL_INITDB_SKIP_TZINFO: 1
+      MYSQL_DEFAULT_AUTHENTICATION_PLUGIN: mysql_native_password
+      
+      # Configuración de seguridad mejorada
+      MYSQL_AUTHENTICATION_STRING: ''
+      MYSQL_SQL_MODE: 'STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO'
+    
+    ports:
+      - "3306:3306"
+    
+    networks:
+      database-network:
+        ipv4_address: 172.21.10.20
+      shibasito-network:
+        ipv4_address: 172.20.10.40
+    
+    volumes:
+      - mysql_bd2_data:/var/lib/mysql
+      - mysql_bd2_logs:/var/log/mysql
+      - mysql_bd2_backup:/backup
+      - ./init-scripts/mysql:/docker-entrypoint-initdb.d
+      - ./scripts/mysql-backup.sh:/usr/local/bin/backup.sh:ro
+    
+    # Configuración de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "10"
+        labels: "service=bd2_mysql"
+        tag: "{{.Name}}/{{.ID}}"
+    
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      
+      # Configuración de memoria y performance
+      --innodb-buffer-pool-size=512M
+      --innodb-log-file-size=128M
+      --innodb-log-buffer-size=16M
+      --innodb-flush-log-at-trx-commit=2
+      --innodb_flush_method=O_DIRECT
+      --innodb-file-per-table=1
+      --innodb-read-io-threads=4
+      --innodb-write-io-threads=4
+      
+      # Configuración de conexiones
+      --max-connections=100
+      --max-connect-errors=10000
+      --wait-timeout=28800
+      --interactive-timeout=28800
+      
+      # Configuración de logging
+      --log-error=/var/log/mysql/error.log
+      --general-log=1
+      --general-log-file=/var/log/mysql/general.log
+      --slow-query-log=1
+      --slow-query-log-file=/var/log/mysql/slow.log
+      --long-query-time=2
+      --log-queries-not-using-indexes=1
+      
+      # Configuración de seguridad
+      --local-infile=0
+      --skip-symbolic-links=1
+      --sql-mode=STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO
+      --validate-password.policy=2
+      
+      # Configuración de backup
+      --binlog-format=ROW
+      --expire-logs-days=7
+      --max-binlog-size=100M
+    
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER:-reniec_user}", "-p${MYSQL_PASSWORD:-reniec_pass123}"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 60s
+      disable: false
+    
+    # Script de backup automático cada 6 horas
+    labels:
+      - "backup.schedule=0 */6 * * *"
+      - "backup.retention=7d"
+
+  # =============================================================================
+  # REDIS - Cache y Session Store
+  # Configuración optimizada con persistencia, límites de memoria y backup automático
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: redis-container
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+        reservations:
+          memory: 256M
+          cpus: '0.1'
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redispass123}
+      REDIS_APPENDONLY: "yes"
+      REDIS_APPENDFSYNC: "everysec"
+      REDIS_MAXMEMORY: "256mb"
+      REDIS_MAXMEMORY_POLICY: "allkeys-lru"
+    
+    ports:
+      - "6379:6379"
+    
+    networks:
+      shibasito-network:
+        ipv4_address: 172.20.10.60
+      database-network:
+        ipv4_address: 172.21.10.40
+    
+    volumes:
+      - redis_data:/data
+      - redis_backup:/backup
+      - ./redis-config/redis.conf:/usr/local/etc/redis/redis.conf
+      - ./scripts/redis-backup.sh:/usr/local/bin/backup.sh:ro
+    
+    # Configuración de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+        labels: "service=redis"
+        tag: "{{.Name}}/{{.ID}}"
+    
+    command: >
+      redis-server /usr/local/etc/redis/redis.conf
+      --requirepass ${REDIS_PASSWORD:-redispass123}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --appendfsync everysec
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --stop-writes-on-bgsave-error yes
+      --rdbcompression yes
+      --rdbchecksum yes
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+      disable: false
+    
+    # Script de backup automático cada 4 horas
+    labels:
+      - "backup.schedule=0 */4 * * *"
+      - "backup.retention=3d"
+
+  # =============================================================================
+  # RABBITMQ - Message Broker con Management UI
+  # =============================================================================
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: rabbitmq-container
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-admin123}
+      RABBITMQ_DEFAULT_VHOST: /
+      
+      # Configuración adicional
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbit log_levels [{connection,error},{default,error}]"
+      RABBITMQ_LOG_LEVELS: error
+      RABBITMQ_VM_MEMORY_HIGH_WATERMARK: 0.6
+    
+    ports:
+      - "5672:5672"    # Puerto AMQP
+      - "15672:15672"  # Puerto Management UI
+      - "15671:15671"  # Puerto Management API
+    
+    networks:
+      shibasito-network:
+        ipv4_address: 172.20.10.50
+      database-network:
+        ipv4_address: 172.21.10.30
+    
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_logs:/var/log/rabbitmq
+      - ./rabbitmq-config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+      - ./rabbitmq-config/definitions.json:/etc/rabbitmq/definitions.json
+    
+    # Configuración de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+        labels: "service=rabbitmq"
+        tag: "{{.Name}}/{{.ID}}"
+    
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+      disable: false
+
+  # =============================================================================
+  # PROMETHEUS - Sistema de monitoreo y métricas
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus-container
+    restart: unless-stopped
+    environment:
+      PROMETHEUS_RETENTION: 30d
+    
+    ports:
+      - "9090:9090"
+    
+    networks:
+      monitoring-network:
+        ipv4_address: 172.22.10.10
+      shibasito-network:
+        ipv4_address: 172.20.10.70
+    
+    volumes:
+      - prometheus_data:/prometheus
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./config/prometheus/rules:/etc/prometheus/rules
+    
+    # Configuración de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+        labels: "service=prometheus"
+        tag: "{{.Name}}/{{.ID}}"
+    
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.external-url=http://localhost:9090'
+    
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+      disable: false
+
+  # =============================================================================
+  # GRAFANA - Dashboard y visualización de métricas
+  # =============================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana-container
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin123}
+      GF_USERS_ALLOW_SIGN_UP: false
+      
+      # Configuración de base de datos
+      GF_DATABASE_TYPE: sqlite3
+      GF_DATABASE_PATH: /var/lib/grafana/grafana.db
+      
+      # Configuración de servidor
+      GF_SERVER_HTTP_PORT: 3000
+      GF_SERVER_ROOT_URL: http://localhost:3000
+      
+      # Configuración de plugins
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource
+      
+      # Configuración de alertas
+      GF_ALERTING_ENABLED: true
+      
+      # Configuración de métricas
+      GF_METRICS_ENABLED: true
+      GF_METRICS_INTERVAL_SECONDS: 10
+    
+    ports:
+      - "3000:3000"
+    
+    networks:
+      monitoring-network:
+        ipv4_address: 172.22.10.20
+      shibasito-network:
+        ipv4_address: 172.20.10.80
+    
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards
+    
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      disable: false
+
+# =============================================================================
+# RESUMEN DE OPTIMIZACIONES APLICADAS
+# =============================================================================
+
+## CONFIGURACIONES DE SERVICIOS DE SOPORTE OPTIMIZADAS
+
+### Redis - Cache y Session Store
+✅ Límites de memoria: 512MB límite, 256MB reserva
+✅ Límites de CPU: 0.25 límite, 0.1 reserva
+✅ Persistencia: AOF habilitado con appendfsync everysec
+✅ Gestión de memoria: Política allkeys-lru
+✅ Health check: Interval 10s, timeout 3s
+✅ Script de backup: redis-backup.sh con retención 3 días
+✅ Volúmenes de backup: redis_backup con driver_opts
+✅ Configuración de logging con rotación
+
+### PostgreSQL - Base de datos BD1
+✅ Límites de memoria: 1GB límite, 512MB reserva
+✅ Límites de CPU: 0.5 límite, 0.25 reserva
+✅ Seguridad: Autenticación scram-sha-256
+✅ Performance: shared_buffers=256MB, effective_cache_size=768MB
+✅ Logging: logging_collector habilitado con rotación
+✅ Health check: pg_isready con verificación de DB
+✅ Script de backup: postgres-backup.sh con retención 7 días
+✅ Volúmenes de backup: postgres_bd1_backup con driver_opts
+✅ Configuración de WAL para backup incremental
+
+### MySQL - Base de datos BD2
+✅ Límites de memoria: 1GB límite, 512MB reserva
+✅ Límites de CPU: 0.5 límite, 0.25 reserva
+✅ InnoDB: buffer_pool_size=512MB, log_file_size=128MB
+✅ Seguridad: local-infile=0, SQL mode estricto
+✅ Performance: innodb_flush_log_at_trx_commit=2
+✅ Health check: mysqladmin ping
+✅ Script de backup: mysql-backup.sh con retención 7 días
+✅ Volúmenes de backup: mysql_bd2_backup con driver_opts
+✅ Configuración de binlogs para backup incremental
+
+### Configuraciones Generales
+✅ Volúmenes con driver_opts para persistencia mejorada
+✅ Redes aisladas: main, database, monitoring
+✅ Health checks en todos los servicios críticos
+✅ Logging configurado con rotación automática
+✅ Labels para automatización de backup
+✅ Configuración de dependencias entre servicios
+
+### Scripts de Backup Automático
+✅ PostgreSQL: Backup completo con compresión, integridad verificada
+✅ MySQL: Backup con mysqldump, compresión gzip
+✅ Redis: Backup RDB + AOF con verificación de integridad
+✅ Retención automática: PostgreSQL/MySQL (7 días), Redis (3 días)
+✅ Limpieza automática de backups antiguos
+✅ Logging detallado de operaciones
+✅ Opciones de restauración para recuperación
+
+### Estructura de Directorios
+✅ data/: Directorios específicos para cada servicio
+✅ logs/: Directorios de logs con rotación
+✅ backup/: Directorios de backup automatizado
+✅ Scripts de configuración y validación
+
+### Comandos de Uso
+# Iniciar servicios
+docker-compose -f docker-compose.main.yml up -d
+
+# Verificar estado
+docker-compose -f docker-compose.main.yml ps
+
+# Ejecutar backups manuales
+./scripts/postgres-backup.sh backup
+./scripts/mysql-backup.sh backup
+./scripts/redis-backup.sh backup
+
+# Monitorear logs
+docker-compose -f docker-compose.main.yml logs -f
+
+# Verificar configuración
+./scripts/validar_configuracion_soporte.sh
+
+=================================================================================

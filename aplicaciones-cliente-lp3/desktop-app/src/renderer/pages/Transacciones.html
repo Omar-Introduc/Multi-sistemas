@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transacciones - Banco Desktop</title>
+    <link href="../../renderer/css/main.css" rel="stylesheet">
+    <link href="../../renderer/css/components.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="transacciones-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-content">
+                <h1>
+                    <i class="fas fa-exchange-alt"></i>
+                    Gestión de Transacciones
+                </h1>
+                <p>Historial y gestión de todas tus transacciones</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="showNewTransactionModal()">
+                    <i class="fas fa-plus"></i>
+                    Nueva Transacción
+                </button>
+                <button class="btn btn-outline" onclick="exportTransactions()">
+                    <i class="fas fa-download"></i>
+                    Exportar
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon success">
+                    <i class="fas fa-arrow-up"></i>
+                </div>
+                <div class="stat-content">
+                    <h4>Ingresos del Mes</h4>
+                    <div class="stat-value" id="monthlyIncome">S/ 0.00</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon error">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+                <div class="stat-content">
+                    <h4>Gastos del Mes</h4>
+                    <div class="stat-value" id="monthlyExpenses">S/ 0.00</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon primary">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-content">
+                    <h4>Balance del Mes</h4>
+                    <div class="stat-value" id="monthlyBalance">S/ 0.00</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon warning">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <h4>Pendientes</h4>
+                    <div class="stat-value" id="pendingTransactions">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters and Search -->
+        <div class="filters-section">
+            <div class="search-bar">
+                <div class="search-input">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchTransactions" placeholder="Buscar transacciones...">
+                </div>
+                <select id="transactionTypeFilter" class="filter-select">
+                    <option value="">Todos los tipos</option>
+                    <option value="deposito">Depósito</option>
+                    <option value="retiro">Retiro</option>
+                    <option value="transferencia">Transferencia</option>
+                    <option value="pago">Pago</option>
+                </select>
+                <select id="transactionStatusFilter" class="filter-select">
+                    <option value="">Todos los estados</option>
+                    <option value="completed">Completadas</option>
+                    <option value="pending">Pendientes</option>
+                    <option value="failed">Fallidas</option>
+                </select>
+                <input type="date" id="dateFrom" class="filter-select" placeholder="Fecha desde">
+                <input type="date" id="dateTo" class="filter-select" placeholder="Fecha hasta">
+            </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="table-container">
+            <table class="table" id="transactionsTable">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Descripción</th>
+                        <th>Cuenta</th>
+                        <th>Monto</th>
+                        <th>Estado</th>
+                        <th>Referencia</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionsTableBody">
+                    <!-- Las transacciones se cargarán dinámicamente -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="transactionsPagination">
+            <!-- Se genera dinámicamente -->
+        </div>
+
+        <!-- New Transaction Modal -->
+        <div id="newTransactionModal" class="modal-overlay hidden">
+            <div class="modal modal-large">
+                <div class="modal-header">
+                    <h3>Nueva Transacción</h3>
+                    <button class="modal-close" onclick="closeNewTransactionModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="newTransactionForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="transactionType">Tipo de Transacción *</label>
+                                <select id="transactionType" name="transactionType" class="form-control" required>
+                                    <option value="">Seleccionar tipo</option>
+                                    <option value="deposito">Depósito</option>
+                                    <option value="retiro">Retiro</option>
+                                    <option value="transferencia">Transferencia</option>
+                                    <option value="pago">Pago</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="accountId">Cuenta *</label>
+                                <select id="accountId" name="accountId" class="form-control" required>
+                                    <option value="">Seleccionar cuenta</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="amount">Monto *</label>
+                                <input type="number" id="amount" name="amount" class="form-control" 
+                                       step="0.01" min="0.01" placeholder="0.00" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="referenceAccount">Cuenta Destino (opcional)</label>
+                                <input type="text" id="referenceAccount" name="referenceAccount" 
+                                       class="form-control" placeholder="Para transferencias">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="description">Descripción</label>
+                            <textarea id="description" name="description" class="form-control" 
+                                     rows="3" placeholder="Descripción de la transacción"></textarea>
+                        </div>
+
+                        <div class="transaction-preview" id="transactionPreview" style="display: none;">
+                            <h4>Vista Previa</h4>
+                            <div class="preview-grid">
+                                <div class="preview-item">
+                                    <label>Tipo:</label>
+                                    <span id="previewType"></span>
+                                </div>
+                                <div class="preview-item">
+                                    <label>Monto:</label>
+                                    <span id="previewAmount"></span>
+                                </div>
+                                <div class="preview-item">
+                                    <label>Cuenta:</label>
+                                    <span id="previewAccount"></span>
+                                </div>
+                                <div class="preview-item">
+                                    <label>Referencia:</label>
+                                    <span id="previewReference"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeNewTransactionModal()">
+                        Cancelar
+                    </button>
+                    <button type="button" class="btn btn-outline" onclick="previewTransaction()">
+                        <i class="fas fa-eye"></i>
+                        Vista Previa
+                    </button>
+                    <button type="submit" form="newTransactionForm" class="btn btn-primary">
+                        <i class="fas fa-check"></i>
+                        Confirmar Transacción
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transaction Details Modal -->
+        <div id="transactionDetailsModal" class="modal-overlay hidden">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>Detalles de Transacción</h3>
+                    <button class="modal-close" onclick="closeTransactionDetailsModal()">&times;</button>
+                </div>
+                <div class="modal-body" id="transactionDetailsContent">
+                    <!-- Se carga dinámicamente -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeTransactionDetailsModal()">
+                        Cerrar
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="printTransaction()">
+                        <i class="fas fa-print"></i>
+                        Imprimir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class TransaccionesPage {
+            constructor() {
+                this.transactions = [];
+                this.filteredTransactions = [];
+                this.currentPage = 1;
+                this.itemsPerPage = 10;
+                this.currentTransaction = null;
+            }
+
+            async render() {
+                return `
+                    <div id="transacciones-content">
+                        ${document.getElementById('transacciones-container').outerHTML}
+                    </div>
+                `;
+            }
+
+            async mount() {
+                await this.loadTransactions();
+                await this.loadAccounts();
+                this.setupEventListeners();
+                this.updateStats();
+                this.renderTransactions();
+            }
+
+            async loadTransactions() {
+                try {
+                    if (window.electronAPI?.database) {
+                        const result = await window.electronAPI.database.read('transactions', {});
+                        this.transactions = result || [];
+                    } else {
+                        this.transactions = this.getDemoTransactions();
+                    }
+                    this.filteredTransactions = [...this.transactions].sort((a, b) => 
+                        new Date(b.created_at) - new Date(a.created_at)
+                    );
+                } catch (error) {
+                    console.error('Error loading transactions:', error);
+                    this.transactions = this.getDemoTransactions();
+                    this.filteredTransactions = [...this.transactions];
+                }
+            }
+
+            async loadAccounts() {
+                try {
+                    if (window.electronAPI?.database) {
+                        const result = await window.electronAPI.database.read('accounts', {});
+                        this.accounts = result || [];
+                    } else {
+                        this.accounts = [
+                            { id: 1, account_number: '201234567890', account_type: 'ahorros' },
+                            { id: 2, account_number: '201234567891', account_type: 'corriente' }
+                        ];
+                    }
+                    
+                    // Populate account dropdown
+                    const accountSelect = document.getElementById('accountId');
+                    if (accountSelect && this.accounts.length > 0) {
+                        accountSelect.innerHTML = '<option value="">Seleccionar cuenta</option>' +
+                            this.accounts.map(acc => 
+                                `<option value="${acc.id}">${this.formatAccountNumber(acc.account_number)} - ${window.utils.toTitleCase(acc.account_type)}</option>`
+                            ).join('');
+                    }
+                } catch (error) {
+                    console.error('Error loading accounts:', error);
+                }
+            }
+
+            getDemoTransactions() {
+                return [
+                    {
+                        id: 1,
+                        account_id: 1,
+                        transaction_type: 'deposito',
+                        amount: 500.00,
+                        description: 'Depósito en efectivo',
+                        reference_number: 'TXN123456789',
+                        status: 'completed',
+                        created_at: new Date(Date.now() - 86400000).toISOString()
+                    },
+                    {
+                        id: 2,
+                        account_id: 1,
+                        transaction_type: 'retiro',
+                        amount: -200.00,
+                        description: 'Retiro en cajero automático',
+                        reference_number: 'TXN123456788',
+                        status: 'completed',
+                        created_at: new Date(Date.now() - 172800000).toISOString()
+                    },
+                    {
+                        id: 3,
+                        account_id: 2,
+                        transaction_type: 'transferencia',
+                        amount: -100.00,
+                        description: 'Transferencia a cuenta de ahorros',
+                        reference_number: 'TXN123456787',
+                        status: 'pending',
+                        created_at: new Date(Date.now() - 259200000).toISOString()
+                    }
+                ];
+            }
+
+            setupEventListeners() {
+                // Search
+                const searchInput = document.getElementById('searchTransactions');
+                if (searchInput) {
+                    searchInput.addEventListener('input', 
+                        window.utils.debounce((e) => this.filterTransactions(), 300)
+                    );
+                }
+
+                // Filters
+                ['transactionTypeFilter', 'transactionStatusFilter', 'dateFrom', 'dateTo'].forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.addEventListener('change', () => this.filterTransactions());
+                    }
+                });
+
+                // Form
+                const form = document.getElementById('newTransactionForm');
+                if (form) {
+                    form.addEventListener('submit', (e) => this.handleNewTransaction(e));
+                }
+
+                // Preview
+                document.addEventListener('input', (e) => {
+                    if (e.target.matches('#transactionType, #amount, #accountId, #referenceAccount')) {
+                        this.updatePreview();
+                    }
+                });
+            }
+
+            filterTransactions() {
+                const searchTerm = document.getElementById('searchTransactions')?.value.toLowerCase() || '';
+                const typeFilter = document.getElementById('transactionTypeFilter')?.value || '';
+                const statusFilter = document.getElementById('transactionStatusFilter')?.value || '';
+                const dateFrom = document.getElementById('dateFrom')?.value || '';
+                const dateTo = document.getElementById('dateTo')?.value || '';
+
+                this.filteredTransactions = this.transactions.filter(transaction => {
+                    const matchesSearch = 
+                        transaction.description.toLowerCase().includes(searchTerm) ||
+                        transaction.reference_number.toLowerCase().includes(searchTerm);
+                    
+                    const matchesType = !typeFilter || transaction.transaction_type === typeFilter;
+                    const matchesStatus = !statusFilter || transaction.status === statusFilter;
+                    
+                    const transactionDate = new Date(transaction.created_at);
+                    const matchesDateFrom = !dateFrom || transactionDate >= new Date(dateFrom);
+                    const matchesDateTo = !dateTo || transactionDate <= new Date(dateTo + 'T23:59:59');
+
+                    return matchesSearch && matchesType && matchesStatus && matchesDateFrom && matchesDateTo;
+                });
+
+                this.currentPage = 1;
+                this.renderTransactions();
+            }
+
+            renderTransactions() {
+                const tbody = document.getElementById('transactionsTableBody');
+                if (!tbody) return;
+
+                const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+                const endIndex = startIndex + this.itemsPerPage;
+                const pageTransactions = this.filteredTransactions.slice(startIndex, endIndex);
+
+                if (pageTransactions.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="text-center">
+                                <div class="empty-state">
+                                    <i class="fas fa-inbox"></i>
+                                    <p>No se encontraron transacciones</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                tbody.innerHTML = pageTransactions.map(transaction => `
+                    <tr>
+                        <td>${window.utils.formatDate(transaction.created_at, 'short')}</td>
+                        <td>
+                            <span class="transaction-type-badge type-${transaction.transaction_type}">
+                                <i class="fas ${this.getTransactionTypeIcon(transaction.transaction_type)}"></i>
+                                ${window.utils.toTitleCase(transaction.transaction_type)}
+                            </span>
+                        </td>
+                        <td>${transaction.description || 'Sin descripción'}</td>
+                        <td>${this.getAccountDisplay(transaction.account_id)}</td>
+                        <td class="amount ${transaction.amount >= 0 ? 'positive' : 'negative'}">
+                            ${transaction.amount >= 0 ? '+' : ''}${window.utils.formatCurrency(Math.abs(transaction.amount))}
+                        </td>
+                        <td>
+                            <span class="status-badge status-${transaction.status}">
+                                ${window.utils.toTitleCase(transaction.status)}
+                            </span>
+                        </td>
+                        <td class="reference-number">${transaction.reference_number || '-'}</td>
+                        <td>
+                            <div class="table-actions">
+                                <button class="btn btn-sm btn-outline" onclick="transaccionesPage.viewTransactionDetails(${transaction.id})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-primary" onclick="transaccionesPage.downloadReceipt(${transaction.id})">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+
+                this.renderPagination();
+            }
+
+            renderPagination() {
+                const totalPages = Math.ceil(this.filteredTransactions.length / this.itemsPerPage);
+                const pagination = document.getElementById('transactionsPagination');
+                
+                if (!pagination) return;
+
+                if (totalPages <= 1) {
+                    pagination.innerHTML = '';
+                    return;
+                }
+
+                let paginationHTML = '';
+
+                // Previous button
+                paginationHTML += `
+                    <button ${this.currentPage === 1 ? 'disabled' : ''} 
+                            onclick="transaccionesPage.changePage(${this.currentPage - 1})">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                `;
+
+                // Page numbers
+                for (let i = 1; i <= totalPages; i++) {
+                    if (i === 1 || i === totalPages || (i >= this.currentPage - 2 && i <= this.currentPage + 2)) {
+                        paginationHTML += `
+                            <button ${i === this.currentPage ? 'class="active"' : ''} 
+                                    onclick="transaccionesPage.changePage(${i})">
+                                ${i}
+                            </button>
+                        `;
+                    } else if (i === this.currentPage - 3 || i === this.currentPage + 3) {
+                        paginationHTML += '<span>...</span>';
+                    }
+                }
+
+                // Next button
+                paginationHTML += `
+                    <button ${this.currentPage === totalPages ? 'disabled' : ''} 
+                            onclick="transaccionesPage.changePage(${this.currentPage + 1})">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                `;
+
+                pagination.innerHTML = paginationHTML;
+            }
+
+            changePage(page) {
+                this.currentPage = page;
+                this.renderTransactions();
+            }
+
+            updateStats() {
+                const currentMonth = new Date().getMonth();
+                const currentYear = new Date().getFullYear();
+
+                const monthlyTransactions = this.transactions.filter(t => {
+                    const date = new Date(t.created_at);
+                    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+                });
+
+                const income = monthlyTransactions
+                    .filter(t => t.amount > 0)
+                    .reduce((sum, t) => sum + t.amount, 0);
+
+                const expenses = monthlyTransactions
+                    .filter(t => t.amount < 0)
+                    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+                const balance = income - expenses;
+                const pending = this.transactions.filter(t => t.status === 'pending').length;
+
+                document.getElementById('monthlyIncome').textContent = window.utils.formatCurrency(income);
+                document.getElementById('monthlyExpenses').textContent = window.utils.formatCurrency(expenses);
+                document.getElementById('monthlyBalance').textContent = window.utils.formatCurrency(balance);
+                document.getElementById('pendingTransactions').textContent = pending;
+            }
+
+            getTransactionTypeIcon(type) {
+                const icons = {
+                    'deposito': 'fa-arrow-down',
+                    'retiro': 'fa-arrow-up',
+                    'transferencia': 'fa-exchange-alt',
+                    'pago': 'fa-credit-card'
+                };
+                return icons[type] || 'fa-money-bill';
+            }
+
+            getAccountDisplay(accountId) {
+                const account = this.accounts.find(acc => acc.id === accountId);
+                if (account) {
+                    return `${this.formatAccountNumber(account.account_number)}<br><small>${window.utils.toTitleCase(account.account_type)}</small>`;
+                }
+                return 'Cuenta no encontrada';
+            }
+
+            formatAccountNumber(accountNumber) {
+                return accountNumber.replace(/(\d{4})(\d{4})(\d{4})(\d{2})/, '$1-$2-$3-$4');
+            }
+
+            updatePreview() {
+                const type = document.getElementById('transactionType').value;
+                const amount = document.getElementById('amount').value;
+                const accountId = document.getElementById('accountId').value;
+                const reference = document.getElementById('referenceAccount').value;
+
+                if (type && amount && accountId) {
+                    document.getElementById('previewType').textContent = window.utils.toTitleCase(type);
+                    document.getElementById('previewAmount').textContent = window.utils.formatCurrency(amount);
+                    const account = this.accounts.find(acc => acc.id == accountId);
+                    document.getElementById('previewAccount').textContent = account ? 
+                        this.formatAccountNumber(account.account_number) : '';
+                    document.getElementById('previewReference').textContent = reference || '-';
+                    document.getElementById('transactionPreview').style.display = 'block';
+                } else {
+                    document.getElementById('transactionPreview').style.display = 'none';
+                }
+            }
+
+            async handleNewTransaction(event) {
+                event.preventDefault();
+                
+                const formData = new FormData(event.target);
+                const transactionData = {
+                    account_id: parseInt(formData.get('accountId')),
+                    transaction_type: formData.get('transactionType'),
+                    amount: parseFloat(formData.get('amount')),
+                    description: formData.get('description') || '',
+                    reference_number: window.utils.generateTransactionReference(),
+                    status: 'completed',
+                    created_at: new Date().toISOString()
+                };
+
+                try {
+                    if (window.electronAPI?.database) {
+                        const result = await window.electronAPI.database.create('transactions', transactionData);
+                        if (result.error) throw new Error(result.error);
+                    }
+
+                    // Add to local list
+                    transactionData.id = Date.now();
+                    this.transactions.unshift(transactionData);
+                    this.filterTransactions();
+                    this.updateStats();
+
+                    closeNewTransactionModal();
+                    window.bancoApp.showNotification('Transacción creada exitosamente', 'success');
+
+                } catch (error) {
+                    window.bancoApp.showNotification('Error al crear transacción: ' + error.message, 'error');
+                }
+            }
+
+            viewTransactionDetails(transactionId) {
+                const transaction = this.transactions.find(t => t.id === transactionId);
+                if (!transaction) return;
+
+                this.currentTransaction = transaction;
+                const modal = document.getElementById('transactionDetailsModal');
+                const content = document.getElementById('transactionDetailsContent');
+
+                content.innerHTML = `
+                    <div class="transaction-details">
+                        <div class="detail-section">
+                            <h4>Información General</h4>
+                            <div class="detail-grid">
+                                <div class="detail-item">
+                                    <label>ID de Transacción:</label>
+                                    <span>${transaction.id}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Referencia:</label>
+                                    <span>${transaction.reference_number}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Tipo:</label>
+                                    <span>${window.utils.toTitleCase(transaction.transaction_type)}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Estado:</label>
+                                    <span class="status-badge status-${transaction.status}">
+                                        ${window.utils.toTitleCase(transaction.status)}
+                                    </span>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Monto:</label>
+                                    <span class="amount ${transaction.amount >= 0 ? 'positive' : 'negative'}">
+                                        ${transaction.amount >= 0 ? '+' : ''}${window.utils.formatCurrency(Math.abs(transaction.amount))}
+                                    </span>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Cuenta:</label>
+                                    <span>${this.getAccountDisplay(transaction.account_id)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="detail-section">
+                            <h4>Fechas</h4>
+                            <div class="detail-grid">
+                                <div class="detail-item">
+                                    <label>Fecha de Transacción:</label>
+                                    <span>${window.utils.formatDate(transaction.created_at, 'long')}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="detail-section">
+                            <h4>Descripción</h4>
+                            <p>${transaction.description || 'Sin descripción'}</p>
+                        </div>
+                    </div>
+                `;
+
+                modal.classList.remove('hidden');
+            }
+
+            async downloadReceipt(transactionId) {
+                const transaction = this.transactions.find(t => t.id === transactionId);
+                if (!transaction) return;
+
+                const receipt = `
+                    RECIBO DE TRANSACCIÓN
+                    ====================
+                    
+                    ID: ${transaction.id}
+                    Referencia: ${transaction.reference_number}
+                    Tipo: ${window.utils.toTitleCase(transaction.transaction_type)}
+                    Monto: ${window.utils.formatCurrency(Math.abs(transaction.amount))}
+                    Descripción: ${transaction.description || 'Sin descripción'}
+                    Fecha: ${window.utils.formatDate(transaction.created_at, 'long')}
+                    Estado: ${window.utils.toTitleCase(transaction.status)}
+                    
+                    Banco Desktop v1.0.0
+                `;
+
+                window.utils.downloadFile(receipt, `recibo_${transaction.reference_number}.txt`);
+                window.bancoApp.showNotification('Recibo descargado', 'success');
+            }
+        }
+
+        // Funciones globales
+        function showNewTransactionModal() {
+            document.getElementById('newTransactionModal').classList.remove('hidden');
+        }
+
+        function closeNewTransactionModal() {
+            document.getElementById('newTransactionModal').classList.add('hidden');
+            document.getElementById('newTransactionForm').reset();
+            document.getElementById('transactionPreview').style.display = 'none';
+        }
+
+        function closeTransactionDetailsModal() {
+            document.getElementById('transactionDetailsModal').classList.add('hidden');
+        }
+
+        function previewTransaction() {
+            // The preview is updated automatically via event listeners
+            window.bancoApp.showNotification('Vista previa actualizada', 'info');
+        }
+
+        function exportTransactions() {
+            window.bancoApp.showNotification('Función de exportación en desarrollo', 'info');
+        }
+
+        function printTransaction() {
+            window.bancoApp.showNotification('Función de impresión en desarrollo', 'info');
+        }
+
+        // Instanciar página
+        window.TransaccionesPage = TransaccionesPage;
+    </script>
+
+    <style>
+        .transaction-type-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .type-deposito { background: #dcfce7; color: var(--success-color); }
+        .type-retiro { background: #fee2e2; color: var(--error-color); }
+        .type-transferencia { background: #dbeafe; color: var(--primary-color); }
+        .type-pago { background: #fef3c7; color: var(--warning-color); }
+
+        .reference-number {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .transaction-details {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            padding: 20px;
+            background: var(--background-color);
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .preview-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .preview-item label {
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .preview-item span {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .transaction-preview h4 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 20px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .search-bar {
+                flex-direction: column;
+            }
+
+            .preview-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</body>
+</html>

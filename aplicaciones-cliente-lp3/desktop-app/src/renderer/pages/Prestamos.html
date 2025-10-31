@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Préstamos - Banco Desktop</title>
+    <link href="../../renderer/css/main.css" rel="stylesheet">
+    <link href="../../renderer/css/components.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="prestamos-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-content">
+                <h1>
+                    <i class="fas fa-money-bill-wave"></i>
+                    Gestión de Préstamos
+                </h1>
+                <p>Administra tus préstamos y solicitudes</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="showNewLoanModal()">
+                    <i class="fas fa-plus"></i>
+                    Solicitar Préstamo
+                </button>
+                <button class="btn btn-outline" onclick="showLoanCalculator()">
+                    <i class="fas fa-calculator"></i>
+                    Calculadora
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon primary">
+                    <i class="fas fa-hand-holding-usd"></i>
+                </div>
+                <div class="stat-content">
+                    <h4>Préstamos Activos</h4>
+                    <div class="stat-value" id="activeLoans">0</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon error">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                <div class="stat-content">
+                    <h4>Deuda Total</h4>
+                    <div class="stat-value" id="totalDebt">S/ 0.00</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon success">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="stat-content">
+                    <h4>Pago Mensual</h4>
+                    <div class="stat-value" id="monthlyPayment">S/ 0.00</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon warning">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <h4>Próximo Vencimiento</h4>
+                    <div class="stat-value" id="nextDueDate">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loan Types -->
+        <div class="section">
+            <div class="section-header">
+                <h3>Tipos de Préstamos Disponibles</h3>
+            </div>
+            <div class="loan-types-grid">
+                <div class="loan-type-card" onclick="selectLoanType('personal')">
+                    <div class="loan-type-icon">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <h4>Préstamo Personal</h4>
+                    <p>Hasta S/ 50,000</p>
+                    <div class="loan-rate">Tasa desde 15% anual</div>
+                    <div class="loan-features">
+                        <small>✓ Sin garantías</small>
+                        <small>✓ Aprobación rápida</small>
+                        <small>✓ Hasta 60 meses</small>
+                    </div>
+                </div>
+                
+                <div class="loan-type-card" onclick="selectLoanType('vivienda')">
+                    <div class="loan-type-icon">
+                        <i class="fas fa-home"></i>
+                    </div>
+                    <h4>Préstamo de Vivienda</h4>
+                    <p>Hasta S/ 500,000</p>
+                    <div class="loan-rate">Tasa desde 8.5% anual</div>
+                    <div class="loan-features">
+                        <small>✓ Garantía hipotecaria</small>
+                        <small>✓ Hasta 20 años</small>
+                        <small>✓ Tasas preferenciales</small>
+                    </div>
+                </div>
+                
+                <div class="loan-type-card" onclick="selectLoanType('vehicular')">
+                    <div class="loan-type-icon">
+                        <i class="fas fa-car"></i>
+                    </div>
+                    <h4>Préstamo Vehicular</h4>
+                    <p>Hasta S/ 100,000</p>
+                    <div class="loan-rate">Tasa desde 12% anual</div>
+                    <div class="loan-features">
+                        <small>✓ Garantía vehicular</small>
+                        <small>✓ Hasta 5 años</small>
+                        <small>✓ Vehículo nuevo o usado</small>
+                    </div>
+                </div>
+                
+                <div class="loan-type-card" onclick="selectLoanType('empresarial')">
+                    <div class="loan-type-icon">
+                        <i class="fas fa-briefcase"></i>
+                    </div>
+                    <h4>Préstamo Empresarial</h4>
+                    <p>Hasta S/ 1,000,000</p>
+                    <div class="loan-rate">Tasa desde 10% anual</div>
+                    <div class="loan-features">
+                        <small>✓ Capital de trabajo</small>
+                        <small>✓ Hasta 10 años</small>
+                        <small>✓ Tasas competitivas</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Loans -->
+        <div class="section">
+            <div class="section-header">
+                <h3>Mis Préstamos</h3>
+                <div class="nav-pills">
+                    <button class="nav-pill active" onclick="filterLoanStatus('all')">Todos</button>
+                    <button class="nav-pill" onclick="filterLoanStatus('active')">Activos</button>
+                    <button class="nav-pill" onclick="filterLoanStatus('pending')">Pendientes</button>
+                    <button class="nav-pill" onclick="filterLoanStatus('completed')">Completados</button>
+                </div>
+            </div>
+            <div id="loansList" class="loans-grid">
+                <!-- Los préstamos se cargarán dinámicamente -->
+            </div>
+        </div>
+
+        <!-- Loan Calculator Modal -->
+        <div id="loanCalculatorModal" class="modal-overlay hidden">
+            <div class="modal modal-large">
+                <div class="modal-header">
+                    <h3>Calculadora de Préstamos</h3>
+                    <button class="modal-close" onclick="closeLoanCalculator()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="calculator-container">
+                        <div class="calculator-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="calcAmount">Monto del Préstamo</label>
+                                    <input type="range" id="calcAmount" min="1000" max="1000000" value="50000" step="1000">
+                                    <div class="range-value" id="calcAmountValue">S/ 50,000</div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="calcRate">Tasa de Interés Anual (%)</label>
+                                    <input type="range" id="calcRate" min="5" max="30" value="15" step="0.5">
+                                    <div class="range-value" id="calcRateValue">15%</div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="calcTerm">Plazo (meses)</label>
+                                    <input type="range" id="calcTerm" min="6" max="240" value="60" step="6">
+                                    <div class="range-value" id="calcTermValue">60 meses</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="calculator-results">
+                            <h4>Resultados del Cálculo</h4>
+                            <div class="results-grid">
+                                <div class="result-item">
+                                    <label>Pago Mensual:</label>
+                                    <span id="monthlyPaymentCalc">S/ 0.00</span>
+                                </div>
+                                <div class="result-item">
+                                    <label>Total a Pagar:</label>
+                                    <span id="totalPaymentCalc">S/ 0.00</span>
+                                </div>
+                                <div class="result-item">
+                                    <label>Total de Intereses:</label>
+                                    <span id="totalInterestCalc">S/ 0.00</span>
+                                </div>
+                                <div class="result-item">
+                                    <label>Porcentaje de Interés:</label>
+                                    <span id="interestPercentageCalc">0%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="amortization-schedule">
+                                <h5>Tabla de Amortización (Primeros 6 meses)</h5>
+                                <div class="table-container">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Mes</th>
+                                                <th>Saldo Inicial</th>
+                                                <th>Cuota</th>
+                                                <th>Interés</th>
+                                                <th>Capital</th>
+                                                <th>Saldo Final</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="amortizationTableBody">
+                                            <!-- Se genera dinámicamente -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeLoanCalculator()">
+                        Cerrar
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="applyForLoan()">
+                        <i class="fas fa-paper-plane"></i>
+                        Solicitar Préstamo
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- New Loan Modal -->
+        <div id="newLoanModal" class="modal-overlay hidden">
+            <div class="modal modal-large">
+                <div class="modal-header">
+                    <h3>Solicitar Nuevo Préstamo</h3>
+                    <button class="modal-close" onclick="closeNewLoanModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="newLoanForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="loanType">Tipo de Préstamo *</label>
+                                <select id="loanType" name="loanType" class="form-control" required>
+                                    <option value="">Seleccionar tipo</option>
+                                    <option value="personal">Préstamo Personal</option>
+                                    <option value="vivienda">Préstamo de Vivienda</option>
+                                    <option value="vehicular">Préstamo Vehicular</option>
+                                    <option value="empresarial">Préstamo Empresarial</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="loanAmount">Monto Solicitado *</label>
+                                <input type="number" id="loanAmount" name="loanAmount" class="form-control" 
+                                       step="1000" min="1000" placeholder="50000" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="loanTerm">Plazo (meses) *</label>
+                                <select id="loanTerm" name="loanTerm" class="form-control" required>
+                                    <option value="">Seleccionar plazo</option>
+                                    <option value="6">6 meses</option>
+                                    <option value="12">12 meses</option>
+                                    <option value="24">24 meses</option>
+                                    <option value="36">36 meses</option>
+                                    <option value="48">48 meses</option>
+                                    <option value="60">60 meses</option>
+                                    <option value="120">120 meses</option>
+                                    <option value="180">180 meses</option>
+                                    <option value="240">240 meses</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="income">Ingresos Mensuales</label>
+                                <input type="number" id="income" name="income" class="form-control" 
+                                       step="100" min="0" placeholder="3000">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="employmentType">Tipo de Empleo</label>
+                                <select id="employmentType" name="employmentType" class="form-control">
+                                    <option value="">Seleccionar</option>
+                                    <option value="dependiente">Dependiente</option>
+                                    <option value="independiente">Independiente</option>
+                                    <option value="empresario">Empresario</option>
+                                    <option value="jubilado">Jubilado</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="employmentYears">Años en el Empleo</label>
+                                <input type="number" id="employmentYears" name="employmentYears" 
+                                       class="form-control" min="0" max="50" placeholder="2">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="loanPurpose">Propósito del Préstamo</label>
+                            <textarea id="loanPurpose" name="loanPurpose" class="form-control" 
+                                     rows="3" placeholder="Describe el propósito de tu préstamo"></textarea>
+                        </div>
+
+                        <div class="loan-estimate" id="loanEstimate" style="display: none;">
+                            <h4>Estimación del Préstamo</h4>
+                            <div class="estimate-grid">
+                                <div class="estimate-item">
+                                    <label>Tasa de Interés:</label>
+                                    <span id="estimatedRate">-</span>
+                                </div>
+                                <div class="estimate-item">
+                                    <label>Pago Mensual:</label>
+                                    <span id="estimatedPayment">-</span>
+                                </div>
+                                <div class="estimate-item">
+                                    <label>Total a Pagar:</label>
+                                    <span id="estimatedTotal">-</span>
+                                </div>
+                                <div class="estimate-item">
+                                    <label>Total Intereses:</label>
+                                    <span id="estimatedInterest">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="requirements-info">
+                            <h4>Documentos Requeridos</h4>
+                            <ul>
+                                <li>DNI vigente</li>
+                                <li>Comprobantes de ingresos (últimos 3 meses)</li>
+                                <li>Certificado de trabajo o constancia de ingresos</li>
+                                <li>Recibo de servicios básicos (luz, agua, teléfono)</li>
+                                <li>Para préstamos con garantía: documentación del bien</li>
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeNewLoanModal()">
+                        Cancelar
+                    </button>
+                    <button type="submit" form="newLoanForm" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i>
+                        Enviar Solicitud
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class PrestamosPage {
+            constructor() {
+                this.loans = [];
+                this.filteredLoans = [];
+                this.currentFilter = 'all';
+                this.selectedLoanType = null;
+            }
+
+            async render() {
+                return `
+                    <div id="prestamos-content">
+                        ${document.getElementById('prestamos-container').outerHTML}
+                    </div>
+                `;
+            }
+
+            async mount() {
+                await this.loadLoans();
+                this.setupEventListeners();
+                this.updateStats();
+                this.renderLoans();
+            }
+
+            async loadLoans() {
+                try {
+                    if (window.electronAPI?.database) {
+                        const result = await window.electronAPI.database.read('loans', {});
+                        this.loans = result || [];
+                    } else {
+                        this.loans = this.getDemoLoans();
+                    }
+                    this.filteredLoans = [...this.loans];
+                } catch (error) {
+                    console.error('Error loading loans:', error);
+                    this.loans = this.getDemoLoans();
+                    this.filteredLoans = [...this.loans];
+                }
+            }
+
+            getDemoLoans() {
+                return [
+                    {
+                        id: 1,
+                        loan_type: 'personal',
+                        amount: 15000.00,
+                        interest_rate: 15.5,
+                        term_months: 36,
+                        monthly_payment: 556.25,
+                        status: 'active',
+                        purpose: 'Gastos personales y consolidación de deudas',
+                        created_at: '2023-06-15T10:30:00Z'
+                    },
+                    {
+                        id: 2,
+                        loan_type: 'vehicular',
+                        amount: 25000.00,
+                        interest_rate: 12.0,
+                        term_months: 48,
+                        monthly_payment: 652.34,
+                        status: 'pending',
+                        purpose: 'Compra de vehículo familiar',
+                        created_at: '2023-12-01T14:20:00Z'
+                    }
+                ];
+            }
+
+            setupEventListeners() {
+                // Calculator sliders
+                ['calcAmount', 'calcRate', 'calcTerm'].forEach(id => {
+                    const slider = document.getElementById(id);
+                    if (slider) {
+                        slider.addEventListener('input', () => this.updateCalculator());
+                    }
+                });
+
+                // Loan form
+                const form = document.getElementById('newLoanForm');
+                if (form) {
+                    form.addEventListener('submit', (e) => this.handleNewLoan(e));
+                }
+
+                // Update estimate when form changes
+                ['loanType', 'loanAmount', 'loanTerm'].forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.addEventListener('change', () => this.updateLoanEstimate());
+                    }
+                });
+            }
+
+            updateStats() {
+                const activeLoans = this.loans.filter(loan => loan.status === 'active');
+                const totalDebt = activeLoans.reduce((sum, loan) => sum + loan.amount, 0);
+                const monthlyPayment = activeLoans.reduce((sum, loan) => sum + loan.monthly_payment, 0);
+
+                document.getElementById('activeLoans').textContent = activeLoans.length;
+                document.getElementById('totalDebt').textContent = window.utils.formatCurrency(totalDebt);
+                document.getElementById('monthlyPayment').textContent = window.utils.formatCurrency(monthlyPayment);
+
+                // Calculate next due date (simplified)
+                const nextDate = new Date();
+                nextDate.setDate(nextDate.getDate() + 15);
+                document.getElementById('nextDueDate').textContent = window.utils.formatDate(nextDate, 'short');
+            }
+
+            renderLoans() {
+                const container = document.getElementById('loansList');
+                if (!container) return;
+
+                const filtered = this.filteredLoans.filter(loan => {
+                    if (this.currentFilter === 'all') return true;
+                    return loan.status === this.currentFilter;
+                });
+
+                if (filtered.length === 0) {
+                    container.innerHTML = this.getEmptyState();
+                    return;
+                }
+
+                container.innerHTML = filtered.map(loan => `
+                    <div class="loan-card">
+                        <div class="loan-card-header">
+                            <div class="loan-type-badge type-${loan.loan_type}">
+                                <i class="fas ${this.getLoanTypeIcon(loan.loan_type)}"></i>
+                                ${window.utils.toTitleCase(loan.loan_type)}
+                            </div>
+                            <div class="loan-status">
+                                <span class="status-badge status-${loan.status}">
+                                    ${window.utils.toTitleCase(loan.status)}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="loan-details">
+                            <div class="loan-amount">
+                                <h3>${window.utils.formatCurrency(loan.amount)}</h3>
+                                <p>Monto del préstamo</p>
+                            </div>
+                            
+                            <div class="loan-info-grid">
+                                <div class="loan-info-item">
+                                    <small>Tasa de Interés</small>
+                                    <strong>${loan.interest_rate}% anual</strong>
+                                </div>
+                                <div class="loan-info-item">
+                                    <small>Plazo</small>
+                                    <strong>${loan.term_months} meses</strong>
+                                </div>
+                                <div class="loan-info-item">
+                                    <small>Pago Mensual</small>
+                                    <strong>${window.utils.formatCurrency(loan.monthly_payment)}</strong>
+                                </div>
+                                <div class="loan-info-item">
+                                    <small>Fecha Solicitud</small>
+                                    <strong>${window.utils.formatDate(loan.created_at)}</strong>
+                                </div>
+                            </div>
+                            
+                            ${loan.purpose ? `
+                                <div class="loan-purpose">
+                                    <small>Propósito:</small>
+                                    <p>${loan.purpose}</p>
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <div class="loan-actions">
+                            ${loan.status === 'active' ? `
+                                <button class="btn btn-sm btn-primary" onclick="prestamosPage.makePayment(${loan.id})">
+                                    <i class="fas fa-credit-card"></i>
+                                    Pagar
+                                </button>
+                                <button class="btn btn-sm btn-outline" onclick="prestamosPage.viewSchedule(${loan.id})">
+                                    <i class="fas fa-table"></i>
+                                    Tabla
+                                </button>
+                            ` : ''}
+                            <button class="btn btn-sm btn-outline" onclick="prestamosPage.viewLoanDetails(${loan.id})">
+                                <i class="fas fa-eye"></i>
+                                Detalles
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            getEmptyState() {
+                return `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <h3>No hay préstamos</h3>
+                        <p>No se encontraron préstamos con los filtros seleccionados</p>
+                        <button class="btn btn-primary" onclick="showNewLoanModal()">
+                            <i class="fas fa-plus"></i>
+                            Solicitar Primer Préstamo
+                        </button>
+                    </div>
+                `;
+            }
+
+            getLoanTypeIcon(type) {
+                const icons = {
+                    'personal': 'fa-user',
+                    'vivienda': 'fa-home',
+                    'vehicular': 'fa-car',
+                    'empresarial': 'fa-briefcase'
+                };
+                return icons[type] || 'fa-money-bill';
+            }
+
+            filterLoanStatus(status) {
+                this.currentFilter = status;
+                this.renderLoans();
+            }
+
+            updateCalculator() {
+                const amount = parseFloat(document.getElementById('calcAmount').value);
+                const rate = parseFloat(document.getElementById('calcRate').value);
+                const term = parseInt(document.getElementById('calcTerm').value);
+
+                document.getElementById('calcAmountValue').textContent = window.utils.formatCurrency(amount);
+                document.getElementById('calcRateValue').textContent = rate + '%';
+                document.getElementById('calcTermValue').textContent = term + ' meses';
+
+                const monthlyRate = rate / 100 / 12;
+                const monthlyPayment = amount * (monthlyRate * Math.pow(1 + monthlyRate, term)) / 
+                                     (Math.pow(1 + monthlyRate, term) - 1);
+                const totalPayment = monthlyPayment * term;
+                const totalInterest = totalPayment - amount;
+                const interestPercentage = (totalInterest / amount) * 100;
+
+                document.getElementById('monthlyPaymentCalc').textContent = window.utils.formatCurrency(monthlyPayment);
+                document.getElementById('totalPaymentCalc').textContent = window.utils.formatCurrency(totalPayment);
+                document.getElementById('totalInterestCalc').textContent = window.utils.formatCurrency(totalInterest);
+                document.getElementById('interestPercentageCalc').textContent = interestPercentage.toFixed(1) + '%';
+
+                this.generateAmortizationTable(amount, monthlyRate, monthlyPayment, term);
+            }
+
+            generateAmortizationTable(principal, monthlyRate, monthlyPayment, term) {
+                const tbody = document.getElementById('amortizationTableBody');
+                if (!tbody) return;
+
+                let balance = principal;
+                let html = '';
+
+                for (let i = 1; i <= Math.min(6, term); i++) {
+                    const interest = balance * monthlyRate;
+                    const principalPayment = monthlyPayment - interest;
+                    balance -= principalPayment;
+
+                    html += `
+                        <tr>
+                            <td>${i}</td>
+                            <td>${window.utils.formatCurrency(balance + principalPayment)}</td>
+                            <td>${window.utils.formatCurrency(monthlyPayment)}</td>
+                            <td>${window.utils.formatCurrency(interest)}</td>
+                            <td>${window.utils.formatCurrency(principalPayment)}</td>
+                            <td>${window.utils.formatCurrency(Math.max(0, balance))}</td>
+                        </tr>
+                    `;
+                }
+
+                tbody.innerHTML = html;
+            }
+
+            updateLoanEstimate() {
+                const type = document.getElementById('loanType').value;
+                const amount = parseFloat(document.getElementById('loanAmount').value);
+                const term = parseInt(document.getElementById('loanTerm').value);
+
+                if (type && amount && term) {
+                    const rates = {
+                        'personal': 15.5,
+                        'vivienda': 8.5,
+                        'vehicular': 12.0,
+                        'empresarial': 10.0
+                    };
+
+                    const rate = rates[type] || 15;
+                    const monthlyRate = rate / 100 / 12;
+                    const monthlyPayment = amount * (monthlyRate * Math.pow(1 + monthlyRate, term)) / 
+                                         (Math.pow(1 + monthlyRate, term) - 1);
+                    const totalPayment = monthlyPayment * term;
+                    const totalInterest = totalPayment - amount;
+
+                    document.getElementById('estimatedRate').textContent = rate + '% anual';
+                    document.getElementById('estimatedPayment').textContent = window.utils.formatCurrency(monthlyPayment);
+                    document.getElementById('estimatedTotal').textContent = window.utils.formatCurrency(totalPayment);
+                    document.getElementById('estimatedInterest').textContent = window.utils.formatCurrency(totalInterest);
+                    
+                    document.getElementById('loanEstimate').style.display = 'block';
+                } else {
+                    document.getElementById('loanEstimate').style.display = 'none';
+                }
+            }
+
+            async handleNewLoan(event) {
+                event.preventDefault();
+                
+                const formData = new FormData(event.target);
+                const loanData = {
+                    loan_type: formData.get('loanType'),
+                    amount: parseFloat(formData.get('loanAmount')),
+                    term_months: parseInt(formData.get('loanTerm')),
+                    interest_rate: this.getLoanRate(formData.get('loanType')),
+                    monthly_payment: this.calculateMonthlyPayment(
+                        parseFloat(formData.get('loanAmount')),
+                        this.getLoanRate(formData.get('loanType')),
+                        parseInt(formData.get('loanTerm'))
+                    ),
+                    purpose: formData.get('loanPurpose') || '',
+                    status: 'pending',
+                    created_at: new Date().toISOString()
+                };
+
+                try {
+                    if (window.electronAPI?.database) {
+                        const result = await window.electronAPI.database.create('loans', loanData);
+                        if (result.error) throw new Error(result.error);
+                    }
+
+                    loanData.id = Date.now();
+                    this.loans.unshift(loanData);
+                    this.filteredLoans = [...this.loans];
+                    this.updateStats();
+                    this.renderLoans();
+
+                    closeNewLoanModal();
+                    window.bancoApp.showNotification('Solicitud de préstamo enviada exitosamente', 'success');
+
+                } catch (error) {
+                    window.bancoApp.showNotification('Error al enviar solicitud: ' + error.message, 'error');
+                }
+            }
+
+            getLoanRate(type) {
+                const rates = {
+                    'personal': 15.5,
+                    'vivienda': 8.5,
+                    'vehicular': 12.0,
+                    'empresarial': 10.0
+                };
+                return rates[type] || 15;
+            }
+
+            calculateMonthlyPayment(amount, annualRate, months) {
+                const monthlyRate = annualRate / 100 / 12;
+                return amount * (monthlyRate * Math.pow(1 + monthlyRate, months)) / 
+                       (Math.pow(1 + monthlyRate, months) - 1);
+            }
+
+            makePayment(loanId) {
+                window.bancoApp.showNotification('Función de pago en desarrollo', 'info');
+            }
+
+            viewSchedule(loanId) {
+                window.bancoApp.showNotification('Función de tabla de amortización en desarrollo', 'info');
+            }
+
+            viewLoanDetails(loanId) {
+                window.bancoApp.showNotification('Función de detalles en desarrollo', 'info');
+            }
+        }
+
+        // Funciones globales
+        function selectLoanType(type) {
+            document.getElementById('loanType').value = type;
+            showNewLoanModal();
+        }
+
+        function showNewLoanModal() {
+            document.getElementById('newLoanModal').classList.remove('hidden');
+        }
+
+        function closeNewLoanModal() {
+            document.getElementById('newLoanModal').classList.add('hidden');
+            document.getElementById('newLoanForm').reset();
+            document.getElementById('loanEstimate').style.display = 'none';
+        }
+
+        function showLoanCalculator() {
+            document.getElementById('loanCalculatorModal').classList.remove('hidden');
+            setTimeout(() => {
+                prestamosPage.updateCalculator();
+            }, 100);
+        }
+
+        function closeLoanCalculator() {
+            document.getElementById('loanCalculatorModal').classList.add('hidden');
+        }
+
+        function filterLoanStatus(status) {
+            prestamosPage.filterLoanStatus(status);
+            
+            // Update nav pills
+            document.querySelectorAll('.nav-pill').forEach(pill => {
+                pill.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        function applyForLoan() {
+            showNewLoanModal();
+            closeLoanCalculator();
+        }
+
+        // Instanciar página
+        window.PrestamosPage = PrestamosPage;
+    </script>
+
+    <style>
+        .loan-types-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .loan-type-card {
+            background: var(--surface-color);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .loan-type-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary-color);
+        }
+
+        .loan-type-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin: 0 auto 20px;
+        }
+
+        .loan-type-card h4 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .loan-type-card p {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        .loan-rate {
+            font-size: 14px;
+            color: var(--success-color);
+            font-weight: 500;
+            margin-bottom: 15px;
+        }
+
+        .loan-features {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .loan-features small {
+            color: var(--text-secondary);
+        }
+
+        .loans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        .loan-card {
+            background: var(--surface-color);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .loan-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: var(--background-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .loan-type-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .type-personal { background: #dcfce7; color: var(--success-color); }
+        .type-vivienda { background: #dbeafe; color: var(--primary-color); }
+        .type-vehicular { background: #fef3c7; color: var(--warning-color); }
+        .type-empresarial { background: #f3e8ff; color: #7c3aed; }
+
+        .loan-details {
+            padding: 20px;
+        }
+
+        .loan-amount {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .loan-amount h3 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        .loan-amount p {
+            color: var(--text-secondary);
+        }
+
+        .loan-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .loan-info-item small {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .loan-info-item strong {
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .loan-purpose {
+            background: var(--background-color);
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .loan-purpose small {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .loan-purpose p {
+            color: var(--text-primary);
+            margin-top: 4px;
+            font-size: 14px;
+        }
+
+        .loan-actions {
+            padding: 15px 20px;
+            background: var(--background-color);
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .calculator-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .range-value {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-top: 8px;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: var(--background-color);
+            border-radius: 6px;
+        }
+
+        .result-item label {
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .result-item span {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 16px;
+        }
+
+        .amortization-schedule h5 {
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .estimate-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            background: var(--background-color);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .estimate-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .estimate-item label {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .estimate-item span {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .requirements-info {
+            background: var(--background-color);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .requirements-info h4 {
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .requirements-info ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .requirements-info li {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .requirements-info li:last-child {
+            border-bottom: none;
+        }
+
+        @media (max-width: 768px) {
+            .loan-types-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .loans-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .loan-info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .calculator-container {
+                grid-template-columns: 1fr;
+            }
+
+            .results-grid,
+            .estimate-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .loan-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</body>
+</html>

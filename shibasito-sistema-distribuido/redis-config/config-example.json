@@ -1,0 +1,29 @@
+{
+  "redis": {
+    "host": "localhost",
+    "port": 6379,
+    "password": "redispass123_secure_2024",
+    "db": 0,
+    "socket_timeout": 5.0,
+    "socket_connect_timeout": 5.0
+  },
+  "alerts": {
+    "max_memory_percent": 85.0,
+    "max_latency_ms": 100.0,
+    "max_connections": 8000,
+    "min_disk_space_mb": 1000,
+    "alert_email": "admin@shibasito.com",
+    "smtp_server": "localhost",
+    "smtp_port": 587,
+    "smtp_user": "redis-monitor@shibasito.com",
+    "smtp_password": "your_smtp_password"
+  },
+  "monitoring": {
+    "update_interval": 30,
+    "history_size": 100,
+    "log_file": "/var/log/redis/monitoring.log",
+    "metrics_file": "/var/log/redis/metrics.json",
+    "alert_file": "/var/log/redis/alerts.log",
+    "web_port": 8080
+  }
+}

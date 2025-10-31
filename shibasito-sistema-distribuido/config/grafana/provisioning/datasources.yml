@@ -1,0 +1,77 @@
+# =============================================================================
+# GRAFANA DATASOURCES CONFIGURATION
+# Configuración para auto-provisión de fuentes de datos
+# =============================================================================
+
+apiVersion: 1
+
+datasources:
+  # =============================================================================
+  # PROMETHEUS DATASOURCE
+  # =============================================================================
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: 15s
+      queryTimeout: 60s
+      httpMethod: POST
+    version: 1
+
+  # =============================================================================
+  # MYSQL DATASOURCE
+  # =============================================================================
+  - name: MySQL-BD2
+    type: mysql
+    access: proxy
+    url: bd2_mysql:3306
+    database: reniec_db
+    user: reniec_user
+    secureJsonData:
+      password: reniec_pass123_secure_2024
+    isDefault: false
+    editable: true
+    jsonData:
+      maxOpenConns: 0
+      maxIdleConns: 2
+      connMaxLifetime: 14400
+    version: 1
+
+  # =============================================================================
+  # POSTGRESQL DATASOURCE
+  # =============================================================================
+  - name: PostgreSQL-BD1
+    type: postgres
+    access: proxy
+    url: bd1_postgresql:5432
+    database: banco_db
+    user: banco_user
+    secureJsonData:
+      password: banco_pass123_secure_2024
+    isDefault: false
+    editable: true
+    jsonData:
+      maxOpenConns: 0
+      maxIdleConns: 2
+      connMaxLifetime: 14400
+      sslmode: disable
+    version: 1
+
+  # =============================================================================
+  # REDIS DATASOURCE (si se instala redis-datasource plugin)
+  # =============================================================================
+  # - name: Redis
+  #   type: redis-datasource
+  #   access: proxy
+  #   url: redis:6379
+  #   secureJsonData:
+  #     password: redispass123_secure_2024
+  #   isDefault: false
+  #   editable: true
+  #   jsonData:
+  #     client: standalone
+  #     poolSize: 5
+  #   version: 1

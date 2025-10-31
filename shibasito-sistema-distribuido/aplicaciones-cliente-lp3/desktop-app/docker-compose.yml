@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # Servicio para desarrollo
+  desktop-app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+      args:
+        - NODE_ENV=development
+    container_name: desktop-app-dev
+    ports:
+      - "3000:3000"      # Puerto de desarrollo
+      - "8080:8080"      # Puerto de Electron
+    volumes:
+      - ./src:/app/src:ro           # Código fuente (solo lectura)
+      - ./public:/app/public:ro     # Archivos públicos
+      - ./package.json:/app/package.json:ro
+      - node_modules_dev:/app/node_modules  # Cache de módulos
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      - ELECTRON_IS_DEV=true
+    command: npm run dev
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    networks:
+      - desktop-network
+
+  # Servicio para build de producción
+  desktop-app-build:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build
+      args:
+        - NODE_ENV=production
+    container_name: desktop-app-build
+    volumes:
+      - ./dist:/app/dist
+      - ./builds:/app/builds
+      - ./package.json:/app/package.json:ro
+    environment:
+      - NODE_ENV=production
+    command: npm run build
+    profiles:
+      - build
+    networks:
+      - desktop-network
+
+  # Servicio para distribución
+  desktop-app-dist:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - NODE_ENV=production
+    container_name: desktop-app-dist
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src:/app/src:ro
+      - ./public:/app/public:ro
+      - node_modules_prod:/app/node_modules
+      - ./builds:/app/builds
+    environment:
+      - NODE_ENV=production
+      - ELECTRON_IS_DEV=false
+    command: npm run start
+    profiles:
+      - dist
+    networks:
+      - desktop-network
+
+volumes:
+  node_modules_dev:
+    driver: local
+  node_modules_prod:
+    driver: local
+
+networks:
+  desktop-network:
+    driver: bridge

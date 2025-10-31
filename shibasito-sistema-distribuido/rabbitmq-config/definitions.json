@@ -1,0 +1,588 @@
+{
+  "users": [
+    {
+      "name": "admin",
+      "password": "admin123_secure_2024",
+      "tags": ["administrator", "monitoring"],
+      "limits": {
+        "max_channels": 100,
+        "max_connections": 50
+      }
+    },
+    {
+      "name": "banco_user",
+      "password": "banco_user_secure_2024",
+      "tags": ["banco-service"],
+      "limits": {
+        "max_channels": 50,
+        "max_connections": 20
+      }
+    },
+    {
+      "name": "reniec_user",
+      "password": "reniec_user_secure_2024",
+      "tags": ["reniec-service"],
+      "limits": {
+        "max_channels": 50,
+        "max_connections": 20
+      }
+    },
+    {
+      "name": "monitor_user",
+      "password": "monitor_secure_2024",
+      "tags": ["monitoring"],
+      "limits": {
+        "max_channels": 10,
+        "max_connections": 5
+      }
+    }
+  ],
+  "vhosts": [
+    {
+      "name": "/",
+      "description": "Default virtual host para administración y servicios generales"
+    },
+    {
+      "name": "/banco",
+      "description": "Virtual host especializado para servicio bancario"
+    },
+    {
+      "name": "/reniec",
+      "description": "Virtual host especializado para servicio RENIEC"
+    },
+    {
+      "name": "/monitoring",
+      "description": "Virtual host para métricas y monitoreo"
+    }
+  ],
+  "permissions": [
+    {
+      "vhost": "/",
+      "user": "admin",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    },
+    {
+      "vhost": "/banco",
+      "user": "banco_user",
+      "configure": "banco\\..*",
+      "write": "banco\\..*",
+      "read": "banco\\..*"
+    },
+    {
+      "vhost": "/banco",
+      "user": "admin",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    },
+    {
+      "vhost": "/reniec",
+      "user": "reniec_user",
+      "configure": "reniec\\..*",
+      "write": "reniec\\..*",
+      "read": "reniec\\..*"
+    },
+    {
+      "vhost": "/reniec",
+      "user": "admin",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    },
+    {
+      "vhost": "/monitoring",
+      "user": "monitor_user",
+      "configure": "amq\\..*",
+      "write": "amq\\..*",
+      "read": ".*"
+    },
+    {
+      "vhost": "/monitoring",
+      "user": "admin",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "banco.events",
+      "vhost": "/banco",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {
+        "x-delivery-limit": 3,
+        "x-dead-letter-exchange": "banco.dlx"
+      }
+    },
+    {
+      "name": "banco.audit",
+      "vhost": "/banco",
+      "type": "fanout",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "banco.dlx",
+      "vhost": "/banco",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": true,
+      "arguments": {}
+    },
+    {
+      "name": "reniec.queries",
+      "vhost": "/reniec",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {
+        "x-delivery-limit": 3,
+        "x-dead-letter-exchange": "reniec.dlx"
+      }
+    },
+    {
+      "name": "reniec.cache",
+      "vhost": "/reniec",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "reniec.dlx",
+      "vhost": "/reniec",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": true,
+      "arguments": {}
+    },
+    {
+      "name": "system.health",
+      "vhost": "/",
+      "type": "topic",
+      "durable": false,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "banco.transaction.queue",
+      "vhost": "/banco",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 300000,
+        "x-dead-letter-exchange": "banco.dlx",
+        "x-dead-letter-routing-key": "banco.transaction.dead",
+        "x-max-priority": 10,
+        "x-queue-type": "classic"
+      }
+    },
+    {
+      "name": "banco.audit.queue",
+      "vhost": "/banco",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 3600000,
+        "x-max-length": 10000,
+        "x-overflow": "reject-publish",
+        "x-queue-type": "classic"
+      }
+    },
+    {
+      "name": "banco.dlx.queue",
+      "vhost": "/banco",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 86400000,
+        "x-max-length": 1000,
+        "x-queue-type": "classic"
+      }
+    },
+    {
+      "name": "reniec.lookup.queue",
+      "vhost": "/reniec",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 180000,
+        "x-dead-letter-exchange": "reniec.dlx",
+        "x-dead-letter-routing-key": "reniec.lookup.dead",
+        "x-max-priority": 5,
+        "x-queue-type": "classic"
+      }
+    },
+    {
+      "name": "reniec.validation.queue",
+      "vhost": "/reniec",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 120000,
+        "x-dead-letter-exchange": "reniec.dlx",
+        "x-dead-letter-routing-key": "reniec.validation.dead",
+        "x-max-priority": 5,
+        "x-queue-type": "classic"
+      }
+    },
+    {
+      "name": "reniec.dlx.queue",
+      "vhost": "/reniec",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 86400000,
+        "x-max-length": 1000,
+        "x-queue-type": "classic"
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "source": "banco.events",
+      "vhost": "/banco",
+      "destination": "banco.transaction.queue",
+      "routing_key": "transaction.*",
+      "arguments": {}
+    },
+    {
+      "source": "banco.audit",
+      "vhost": "/banco",
+      "destination": "banco.audit.queue",
+      "routing_key": "#",
+      "arguments": {}
+    },
+    {
+      "source": "banco.dlx",
+      "vhost": "/banco",
+      "destination": "banco.dlx.queue",
+      "routing_key": "banco.transaction.dead",
+      "arguments": {}
+    },
+    {
+      "source": "reniec.queries",
+      "vhost": "/reniec",
+      "destination": "reniec.lookup.queue",
+      "routing_key": "dni.lookup",
+      "arguments": {}
+    },
+    {
+      "source": "reniec.queries",
+      "vhost": "/reniec",
+      "destination": "reniec.validation.queue",
+      "routing_key": "dni.validate",
+      "arguments": {}
+    },
+    {
+      "source": "reniec.dlx",
+      "vhost": "/reniec",
+      "destination": "reniec.dlx.queue",
+      "routing_key": "reniec.lookup.dead",
+      "arguments": {}
+    },
+    {
+      "source": "reniec.dlx",
+      "vhost": "/reniec",
+      "destination": "reniec.dlx.queue",
+      "routing_key": "reniec.validation.dead",
+      "arguments": {}
+    }
+  ],
+  "policies": [
+    {
+      "name": "banco-ha-policy",
+      "vhost": "/banco",
+      "pattern": "banco\\..*",
+      "definition": {
+        "ha-mode": "all",
+        "ha-sync-mode": "automatic",
+        "ha-params": 0
+      },
+      "priority": 1,
+      "apply-to": "queues"
+    },
+    {
+      "name": "reniec-ha-policy",
+      "vhost": "/reniec",
+      "pattern": "reniec\\..*",
+      "definition": {
+        "ha-mode": "all",
+        "ha-sync-mode": "automatic",
+        "ha-params": 0
+      },
+      "priority": 1,
+      "apply-to": "queues"
+    },
+    {
+      "name": "cliente-ha-policy",
+      "vhost": "/banco",
+      "pattern": "cliente\\..*",
+      "definition": {
+        "ha-mode": "all",
+        "ha-sync-mode": "automatic",
+        "ha-params": 0
+      },
+      "priority": 1,
+      "apply-to": "queues"
+    },
+    {
+      "name": "cliente-requests-policy",
+      "vhost": "/banco",
+      "pattern": "cliente\\.requests.*",
+      "definition": {
+        "x-message-ttl": 300000,
+        "x-dead-letter-exchange": "banco.dlx",
+        "x-dead-letter-routing-key": "cliente.requests.dead",
+        "x-max-priority": 10
+      },
+      "priority": 2,
+      "apply-to": "queues"
+    }
+  ],
+    {
+      "name": "cliente-ha-policy",
+      "vhost": "/banco",
+      "pattern": "cliente\\..*",
+      "definition": {
+        "ha-mode": "all",
+        "ha-sync-mode": "automatic",
+        "ha-params": 0
+      },
+      "priority": 1,
+      "apply-to": "queues"
+    },
+    {
+      "name": "cliente-requests-policy",
+      "vhost": "/banco",
+      "pattern": "cliente\\.requests.*",
+      "definition": {
+        "x-message-ttl": 300000,
+        "x-dead-letter-exchange": "banco.dlx",
+        "x-dead-letter-routing-key": "cliente.requests.dead",
+        "x-max-priority": 10
+      },
+      "priority": 2,
+      "apply-to": "queues"
+    }
+  ],
+  "users": [
+    {
+      "name": "cliente_user",
+      "password": "cliente_secure_2024",
+      "tags": ["cliente"],
+      "limits": {
+        "max_channels": 30,
+        "max_connections": 15
+      }
+    }
+  ],
+  "permissions": [
+    {
+      "vhost": "/banco",
+      "user": "cliente_user",
+      "configure": "cliente\\..*",
+      "write": "cliente\\..*",
+      "read": "cliente\\..*"
+    },
+    {
+      "vhost": "/banco",
+      "user": "admin",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    },
+    {
+      "vhost": "/",
+      "user": "admin",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "cliente.requests",
+      "vhost": "/banco",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {
+        "x-delivery-limit": 3,
+        "x-dead-letter-exchange": "banco.dlx"
+      }
+    },
+    {
+      "name": "cliente.responses",
+      "vhost": "/banco",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {
+        "x-delivery-limit": 3
+      }
+    },
+    {
+      "name": "cliente.notifications",
+      "vhost": "/banco",
+      "type": "fanout",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "cliente.requests.requests",
+      "vhost": "/banco",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 300000,
+        "x-dead-letter-exchange": "banco.dlx",
+        "x-dead-letter-routing-key": "cliente.requests.dead",
+        "x-max-priority": 10,
+        "x-queue-type": "classic"
+      }
+    },
+    {
+      "name": "cliente.requests.transactions",
+      "vhost": "/banco",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 600000,
+        "x-dead-letter-exchange": "banco.dlx",
+        "x-dead-letter-routing-key": "cliente.transactions.dead",
+        "x-max-priority": 8,
+        "x-queue-type": "classic"
+      }
+    },
+    {
+      "name": "cliente.requests.loans",
+      "vhost": "/banco",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 900000,
+        "x-dead-letter-exchange": "banco.dlx",
+        "x-dead-letter-routing-key": "cliente.loans.dead",
+        "x-max-priority": 5,
+        "x-queue-type": "classic"
+      }
+    },
+    {
+      "name": "cliente.responses.*",
+      "vhost": "/banco",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 300000,
+        "x-queue-type": "classic"
+      }
+    },
+    {
+      "name": "cliente.notifications.push",
+      "vhost": "/banco",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 1800000,
+        "x-max-length": 1000,
+        "x-overflow": "reject-publish",
+        "x-queue-type": "classic"
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "source": "cliente.requests",
+      "vhost": "/banco",
+      "destination": "cliente.requests.requests",
+      "routing_key": "cliente.requests.#",
+      "arguments": {}
+    },
+    {
+      "source": "cliente.requests",
+      "vhost": "/banco",
+      "destination": "cliente.requests.transactions",
+      "routing_key": "cliente.transactions.#",
+      "arguments": {}
+    },
+    {
+      "source": "cliente.requests",
+      "vhost": "/banco",
+      "destination": "cliente.requests.loans",
+      "routing_key": "cliente.loans.#",
+      "arguments": {}
+    },
+    {
+      "source": "banco.events",
+      "vhost": "/banco",
+      "destination": "cliente.notifications.push",
+      "routing_key": "cliente.*",
+      "arguments": {}
+    },
+    {
+      "source": "banco.dlx",
+      "vhost": "/banco",
+      "destination": "banco.dlx.queue",
+      "routing_key": "cliente.requests.dead",
+      "arguments": {}
+    },
+    {
+      "source": "banco.dlx",
+      "vhost": "/banco",
+      "destination": "banco.dlx.queue",
+      "routing_key": "cliente.transactions.dead",
+      "arguments": {}
+    },
+    {
+      "source": "banco.dlx",
+      "vhost": "/banco",
+      "destination": "banco.dlx.queue",
+      "routing_key": "cliente.loans.dead",
+      "arguments": {}
+    }
+  ],
+  "topic_permissions": [
+    {
+      "user": "banco_user",
+      "vhost": "/banco",
+      "exchange": "banco",
+      "write": "^banco\\.(transactions|events|audit)\\.${user}",
+      "read": "^banco\\..*"
+    },
+    {
+      "user": "reniec_user",
+      "vhost": "/reniec",
+      "exchange": "reniec",
+      "write": "^reniec\\.(queries|cache)\\.${user}",
+      "read": "^reniec\\..*"
+    },
+    {
+      "user": "cliente_user",
+      "vhost": "/banco",
+      "exchange": "cliente",
+      "write": "^cliente\\.(requests|responses|notifications)\\.${user}",
+      "read": "^cliente\\..*"
+    }
+  ]
+}

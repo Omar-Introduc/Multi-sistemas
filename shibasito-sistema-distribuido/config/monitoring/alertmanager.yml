@@ -1,0 +1,258 @@
+# Configuración de AlertManager
+# Sistema Bancario Distribuido - Shibasito
+# ==========================================
+
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alerts@shibasito-banco.com'
+  smtp_auth_username: 'alerts@shibasito-banco.com'
+  smtp_auth_password: 'password'
+  resolve_timeout: 5m
+
+# Plantillas de notificación
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Configuración de enrutamiento
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
+  routes:
+    # Alertas críticas van a Slack y Email inmediatamente
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 5s
+      repeat_interval: 5m
+      continue: true
+    
+    # Alertas de database son críticas
+    - match:
+        category: database
+      receiver: 'critical-alerts'
+      group_wait: 5s
+      repeat_interval: 5m
+      continue: true
+    
+    # Alertas de seguridad
+    - match:
+        category: security
+      receiver: 'security-alerts'
+      group_wait: 5s
+      repeat_interval: 10m
+      continue: true
+    
+    # Alertas de warning van a Slack
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      repeat_interval: 30m
+      continue: true
+
+# Configuración de receptores
+receivers:
+  # Receptor por defecto - webhook
+  - name: 'web.hook'
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook'
+        send_resolved: true
+        title: 'Alerta {{ .GroupLabels.alertname }}'
+        text: |
+          Alerta: {{ .GroupLabels.alertname }}
+          Servicio: {{ .GroupLabels.service }}
+          Severidad: {{ .Labels.severity }}
+          Descripción: {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+          Hora: {{ .CommonAnnotations.timestamp }}
+          Estado: {{ if eq .Status "firing" }}ACTIVA{{ else }}RESUELTA{{ end }}
+  
+  # Alertas críticas
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'admin@shibasito-banco.com,cto@shibasito-banco.com'
+        subject: '🚨 ALERTA CRÍTICA - {{ .GroupLabels.service }} - {{ .GroupLabels.alertname }}'
+        body: |
+          📧 ALERTA CRÍTICA DETECTADA
+          
+          ⚠️ Detalles de la Alerta:
+          • Servicio: {{ .GroupLabels.service }}
+          • Tipo: {{ .GroupLabels.alertname }}
+          • Severidad: {{ .Labels.severity }}
+          • Categoría: {{ .Labels.category }}
+          
+          📝 Descripción:
+          {{ range .Alerts }}
+          • {{ .Annotations.description }}
+          {{ end }}
+          
+          🕐 Estado: {{ if eq .Status "firing" }}ACTIVA{{ else }}RESUELTA{{ end }}
+          ⏰ Tiempo: {{ .CommonAnnotations.timestamp }}
+          
+          🔗 Enlaces Útiles:
+          • Grafana: http://localhost:3000/d/sistema-bancario-ejecutivo
+          • Prometheus: http://localhost:9090/alerts
+          • AlertManager: http://localhost:9093
+          
+          💡 Acción Requerida: RESPUESTA INMEDIATA
+          
+          ---
+          Sistema de Monitoreo - Shibasito Banco
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#alerts-critical'
+        title: '🚨 Alerta Crítica - {{ .GroupLabels.service }}'
+        text: |
+          *Servicio:* {{ .GroupLabels.service }}
+          *Tipo:* {{ .GroupLabels.alertname }}
+          *Descripción:* {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+          *Estado:* {{ if eq .Status "firing" }}🔥 ACTIVA{{ else }}✅ RESUELTA{{ end }}
+          *Hora:* {{ .CommonAnnotations.timestamp }}
+        send_resolved: true
+        color: 'danger'
+        
+  # Alertas de warning
+  - name: 'warning-alerts'
+    email_configs:
+      - to: 'admin@shibasito-banco.com'
+        subject: '⚠️ Alerta de Warning - {{ .GroupLabels.service }}'
+        body: |
+          📧 ALERTA DE WARNING
+          
+          ⚠️ Detalles de la Alerta:
+          • Servicio: {{ .GroupLabels.service }}
+          • Tipo: {{ .GroupLabels.alertname }}
+          • Severidad: {{ .Labels.severity }}
+          
+          📝 Descripción:
+          {{ range .Alerts }}
+          • {{ .Annotations.description }}
+          {{ end }}
+          
+          🕐 Estado: {{ if eq .Status "firing" }}ACTIVA{{ else }}RESUELTA{{ end }}
+          ⏰ Tiempo: {{ .CommonAnnotations.timestamp }}
+          
+          💡 Acción: Monitoreo requerido
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#alerts-warning'
+        title: '⚠️ Warning - {{ .GroupLabels.service }}'
+        text: |
+          *Servicio:* {{ .GroupLabels.service }}
+          *Tipo:* {{ .GroupLabels.alertname }}
+          *Descripción:* {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+          *Estado:* {{ if eq .Status "firing" }}⚠️ ACTIVA{{ else }}✅ RESUELTA{{ end }}
+        send_resolved: true
+        color: 'warning'
+
+  # Alertas de seguridad
+  - name: 'security-alerts'
+    email_configs:
+      - to: 'security@shibasito-banco.com,admin@shibasito-banco.com'
+        subject: '🔒 ALERTA DE SEGURIDAD - {{ .GroupLabels.service }}'
+        body: |
+          🔒 ALERTA DE SEGURIDAD DETECTADA
+          
+          ⚠️ Detalles de la Alerta:
+          • Servicio: {{ .GroupLabels.service }}
+          • Tipo: {{ .GroupLabels.alertname }}
+          • Categoría: {{ .Labels.category }}
+          
+          📝 Descripción:
+          {{ range .Alerts }}
+          • {{ .Annotations.description }}
+          {{ end }}
+          
+          🕐 Estado: {{ if eq .Status "firing" }}ACTIVA{{ else }}RESUELTA{{ end }}
+          ⏰ Tiempo: {{ .CommonAnnotations.timestamp }}
+          
+          💡 Acción: Revisar inmediatamente
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#security-alerts'
+        title: '🔒 Alerta de Seguridad - {{ .GroupLabels.service }}'
+        text: |
+          *Servicio:* {{ .GroupLabels.service }}
+          *Tipo:* {{ .GroupLabels.alertname }}
+          *Descripción:* {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+          *Estado:* {{ if eq .Status "firing" }}🔒 ACTIVA{{ else }}✅ RESUELTA{{ end }}
+        send_resolved: true
+        color: '#FF0000'
+
+# Reglas de inhibición
+inhibit_rules:
+  # Si un servicio principal está down, inhibir otras alertas del mismo servicio
+  - source_match:
+      alertname: 'ServicioBancoNoDisponible'
+    target_match:
+      service: 'lp1-banco'
+    equal: ['instance']
+  
+  - source_match:
+      alertname: 'ServicioRENEICNoDisponible'
+    target_match:
+      service: 'lp2-reniec'
+    equal: ['instance']
+  
+  - source_match:
+      alertname: 'BaseDatosMySQLNoDisponible'
+    target_match:
+      service: 'mysql'
+    equal: ['instance']
+  
+  - source_match:
+      alertname: 'BaseDatosPostgreSQLNoDisponible'
+    target_match:
+      service: 'postgres'
+    equal: ['instance']
+  
+  # Inhibir alertas de bajo rendimiento si el servicio está completamente down
+  - source_match:
+      alertname: 'ServicioBancoNoDisponible'
+    target_match:
+      alertname: 'AltoTiempoRespuestaBanco'
+    equal: ['service']
+  
+  - source_match:
+      alertname: 'ServicioRENEICNoDisponible'
+    target_match:
+      alertname: 'AltoTiempoRespuestaRENIEC'
+    equal: ['service']
+
+# Configuración de silencios
+time_intervals:
+  # Horario laboral (Lunes a Viernes 9:00-18:00)
+  - name: 'business-hours'
+    time_intervals:
+      - times:
+          - start_time: '09:00'
+            end_time: '18:00'
+        weekdays: ['monday:friday']
+        location: 'UTC'
+  
+  # Horario fuera de servicio
+  - name: 'after-hours'
+    time_intervals:
+      - times:
+          - start_time: '18:00'
+            end_time: '09:00'
+        weekdays: ['friday:monday']
+        location: 'UTC'
+  
+  # Fines de semana
+  - name: 'weekends'
+    time_intervals:
+      - weekdays: ['saturday', 'sunday']
+
+# Mute time para alertas no críticas fuera de horario
+mute_time_intervals:
+  - name: 'mute-non-critical-after-hours'
+    time_intervals:
+      - weekdays: ['monday:friday']
+        times:
+          - start_time: '18:00'
+            end_time: '09:00'
+        location: 'UTC'
+      - weekdays: ['saturday', 'sunday']
+        location: 'UTC'

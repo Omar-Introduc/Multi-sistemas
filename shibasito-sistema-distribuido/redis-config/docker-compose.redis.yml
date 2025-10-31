@@ -1,0 +1,297 @@
+# =============================================================================
+# DOCKER COMPOSE PARA REDIS - SISTEMA DISTRIBUIDO SHIBASITO
+# Configuración completa para despliegue en contenedores
+# =============================================================================
+
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7.2-alpine
+    container_name: shibasito-redis
+    restart: unless-stopped
+    
+    # Configuración de red
+    ports:
+      - "6379:6379"
+      - "16379:16379"  # Puerto para cluster bus
+    
+    # Configuración de volúmenes
+    volumes:
+      - ./redis-config/redis.conf:/usr/local/etc/redis/redis.conf
+      - redis_data:/data
+      - redis_logs:/var/log/redis
+      - ./redis-config/backup-redis.sh:/usr/local/bin/backup-redis.sh
+    
+    # Configuración de comando
+    command: redis-server /usr/local/etc/redis/redis.conf
+    
+    # Variables de entorno
+    environment:
+      - REDIS_PASSWORD=redispass123_secure_2024
+      - REDIS_MAXMEMORY=512mb
+      - REDIS_MAXMEMORY_POLICY=allkeys-lru
+    
+    # Límites de recursos
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    
+    # Configuración de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    # Configuración de red
+    networks:
+      - shibasito-network
+
+  redis-cluster:
+    image: redis:7.2-alpine
+    container_name: shibasito-redis-cluster
+    restart: unless-stopped
+    profiles: ["cluster"]  # Solo se ejecuta con --profile cluster
+    
+    # Configuración de red
+    ports:
+      - "7000:6379"  # Puertos diferentes para cluster
+      - "17000:16379"
+    
+    # Configuración de volúmenes
+    volumes:
+      - ./redis-config/redis-cluster.conf:/usr/local/etc/redis/redis.conf
+      - redis_cluster_data:/data
+      - redis_cluster_logs:/var/log/redis
+      - ./redis-config/backup-redis.sh:/usr/local/bin/backup-redis.sh
+    
+    # Configuración de comando
+    command: redis-server /usr/local/etc/redis/redis.conf
+    
+    # Variables de entorno
+    environment:
+      - REDIS_PASSWORD=redispass123_secure_2024
+      - REDIS_MAXMEMORY=512mb
+      - REDIS_CLUSTER_ENABLED=yes
+    
+    # Límites de recursos
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    
+    # Configuración de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    # Configuración de red
+    networks:
+      - shibasito-network
+
+  redis-monitor:
+    image: python:3.11-alpine
+    container_name: shibasito-redis-monitor
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    
+    # Configuración de volúmenes
+    volumes:
+      - ./redis-config/monitoring-redis.py:/app/monitoring-redis.py
+      - redis_monitor_logs:/var/log/redis-monitor
+    
+    # Directorio de trabajo
+    working_dir: /app
+    
+    # Comando
+    command: >
+      sh -c "
+        apk add --no-cache redis-client &&
+        pip install redis psutil &&
+        python monitoring-redis.py
+          --host redis
+          --port 6379
+          --password redispass123_secure_2024
+          --web-port 8080
+          --interval 30
+      "
+    
+    # Puertos
+    ports:
+      - "8080:8080"
+    
+    # Configuración de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "2"
+    
+    # Configuración de red
+    networks:
+      - shibasito-network
+
+  redis-backup:
+    image: alpine:latest
+    container_name: shibasito-redis-backup
+    restart: "no"  # Solo se ejecuta bajo demanda
+    profiles: ["backup"]
+    
+    # Configuración de volúmenes
+    volumes:
+      - redis_data:/data:ro  # Solo lectura
+      - redis_backup:/backups
+    
+    # Script de backup
+    command: >
+      sh -c "
+        apk add --no-cache gzip &&
+        DATE=$$(date +%Y%m%d_%H%M%S) &&
+        mkdir -p /backups &&
+        cp /data/dump.rdb /backups/redis_backup_$$DATE.rdb &&
+        gzip /backups/redis_backup_$$DATE.rdb &&
+        echo 'Backup creado: redis_backup_$$DATE.rdb.gz' &&
+        ls -la /backups/
+      "
+    
+    # Configuración de red
+    networks:
+      - shibasito-network
+
+  redis-cli:
+    image: redis:7.2-alpine
+    container_name: shibasito-redis-cli
+    restart: "no"  # Solo bajo demanda
+    profiles: ["cli"]
+    
+    # Dependencias
+    depends_on:
+      redis:
+        condition: service_healthy
+    
+    # Configuración de red
+    networks:
+      - shibasito-network
+    
+    # Comando interactivo
+    command: redis-cli -h redis -a redispass123_secure_2024 --raw
+
+# =============================================================================
+# VOLÚMENES
+# =============================================================================
+
+volumes:
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/redis
+  
+  redis_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs/redis
+  
+  redis_cluster_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/redis-cluster
+  
+  redis_cluster_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs/redis-cluster
+  
+  redis_monitor_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs/redis-monitor
+  
+  redis_backup:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./backups/redis
+
+# =============================================================================
+# REDES
+# =============================================================================
+
+networks:
+  shibasito-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# =============================================================================
+# COMANDOS DE USO
+# =============================================================================
+
+# Iniciar Redis básico:
+# docker-compose up redis
+
+# Iniciar con monitoreo:
+# docker-compose up redis redis-monitor
+
+# Iniciar cluster:
+# docker-compose --profile cluster up redis-cluster
+
+# Backup manual:
+# docker-compose --profile backup up redis-backup
+
+# CLI interactivo:
+# docker-compose --profile cli run --rm redis-cli
+
+# Ver logs:
+# docker-compose logs -f redis
+# docker-compose logs -f redis-monitor
+
+# Ver estado:
+# docker-compose ps
+
+# Parar todos:
+# docker-compose down
+
+# Limpiar volúmenes:
+# docker-compose down -v

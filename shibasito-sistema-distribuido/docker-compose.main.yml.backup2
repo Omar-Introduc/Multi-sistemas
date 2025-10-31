@@ -1,0 +1,769 @@
+version: '3.8'
+
+# =============================================================================
+# DOCKER COMPOSE - SISTEMA DISTRIBUIDO SHIBASITO
+# Configuración completa de servicios para arquitectura distribuida
+# =============================================================================
+
+networks:
+  # Red principal para comunicación entre servicios
+  shibasito-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: shibasito-main
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+          ip_range: 172.20.1.0/24
+          aux_addresses:
+            gateway: 172.20.0.1
+            host: 172.20.0.2
+  
+  # Red para servicios de base de datos
+  database-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: shibasito-db
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.0.0/16
+          gateway: 172.21.0.1
+          ip_range: 172.21.1.0/24
+          aux_addresses:
+            gateway: 172.21.0.1
+            host: 172.21.0.2
+  
+  # Red para servicios de monitoreo
+  monitoring-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: shibasito-mon
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.22.0.0/16
+          gateway: 172.22.0.1
+          ip_range: 172.22.1.0/24
+          aux_addresses:
+            gateway: 172.22.0.1
+            host: 172.22.0.2
+
+volumes:
+  # Volúmenes para persistencia de datos de PostgreSQL
+  postgres_bd1_data:
+    driver: local
+  postgres_bd1_logs:
+    driver: local
+  
+  # Volúmenes para persistencia de datos de MySQL
+  mysql_bd2_data:
+    driver: local
+  mysql_bd2_logs:
+    driver: local
+  
+  # Volúmenes para RabbitMQ
+  rabbitmq_data:
+    driver: local
+  rabbitmq_logs:
+    driver: local
+  
+  # Volúmenes para Redis
+  redis_data:
+    driver: local
+  
+  # Volúmenes para Prometheus
+  prometheus_data:
+    driver: local
+  
+  # Volúmenes para Grafana
+  grafana_data:
+    driver: local
+
+services:
+  # =============================================================================
+  # SERVICIO BANCO LP1 - Java/Spring Boot
+  # =============================================================================
+  servicio-banco-lp1:
+    build:
+      context: ./lp1-servicio-banco
+      dockerfile: Dockerfile
+    container_name: banco-lp1-container
+    restart: unless-stopped
+    labels:
+      - "com.shibasito.service=servicio-banco-lp1"
+      - "com.shibasito.layer=application"
+      - "com.shibasito.team=banco"
+      - "com.shibasito.version=1.0"
+      - "com.shibasito.environment=docker"
+      - "com.shibasito.monitoring=true"
+      - "com.shibasito.ports=8080,8081"
+    
+    # Configuración de recursos
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    
+    environment:
+      # Configuración de la aplicación
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+      JAVA_OPTS: "-Xmx512m -Xms256m"
+      
+      # Configuración de base de datos PostgreSQL (bd1)
+      POSTGRES_HOST: bd1_postgresql
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: banco_db
+      POSTGRES_USER: ${POSTGRES_USER:-banco_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-banco_pass123}
+      
+      # Configuración de Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      
+      # Configuración de RabbitMQ
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-admin123}
+      RABBITMQ_VHOST: /banco
+      
+      # Configuración de monitoreo
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: always
+      MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED: true
+    
+    ports:
+      - "8080:8080"  # Puerto de la aplicación
+      - "8081:8081"  # Puerto de management/métricas
+    
+    networks:
+      shibasito-network:
+        ipv4_address: 172.20.10.10
+    
+    volumes:
+      - ./logs/banco:/app/logs
+    
+    # Configuración de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+        labels: "service=servicio-banco-lp1"
+        tag: "{{.Name}}/{{.ID}}"
+    
+    depends_on:
+      bd1_postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+      disable: false
+
+  # =============================================================================
+  # SERVICIO RENIEC LP2 - Python/FastAPI
+  # =============================================================================
+  servicio-reniec-lp2:
+    build:
+      context: ./lp2_reniec_service
+      dockerfile: Dockerfile
+    container_name: reniec-lp2-container
+    restart: unless-stopped
+    labels:
+      - "com.shibasito.service=servicio-reniec-lp2"
+      - "com.shibasito.layer=application"
+      - "com.shibasito.team=reniec"
+      - "com.shibasito.version=1.0"
+      - "com.shibasito.environment=docker"
+      - "com.shibasito.monitoring=true"
+      - "com.shibasito.ports=8000,8001"
+    
+    # Configuración de recursos
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 768M
+        reservations:
+          cpus: '0.5'
+          memory: 384M
+    
+    environment:
+      # Configuración de la aplicación
+      APP_ENV: docker
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      DEBUG: false
+      
+      # Configuración de base de datos MySQL (bd2)
+      MYSQL_HOST: bd2_mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: reniec_db
+      MYSQL_USER: ${MYSQL_USER:-reniec_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-reniec_pass123}
+      
+      # Configuración de Redis para caché
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 1
+      
+      # Configuración de RabbitMQ
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-admin123}
+      RABBITMQ_VHOST: /reniec
+      
+      # Configuración de logging
+      LOG_LEVEL: INFO
+      
+      # Configuración de CORS
+      CORS_ORIGINS: "*"
+    
+    ports:
+      - "8000:8000"  # Puerto de la API
+      - "8001:8001"  # Puerto de métricas
+    
+    networks:
+      shibasito-network:
+        ipv4_address: 172.20.10.20
+    
+    volumes:
+      - ./logs/reniec:/app/logs
+    
+    # Configuración de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+        labels: "service=servicio-reniec-lp2"
+        tag: "{{.Name}}/{{.ID}}"
+    
+    depends_on:
+      bd2_mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+      disable: false
+
+  # =============================================================================
+  # BASE DE DATOS POSTGRESQL (BD1) - Servicio Banco
+  # =============================================================================
+  bd1_postgresql:
+    image: postgres:15-alpine
+    container_name: postgresql-bd1-container
+    restart: unless-stopped
+    labels:
+      - "com.shibasito.service=bd1_postgresql"
+      - "com.shibasito.layer=database"
+      - "com.shibasito.team=banco"
+      - "com.shibasito.version=15"
+      - "com.shibasito.environment=docker"
+      - "com.shibasito.monitoring=true"
+      - "com.shibasito.ports=5432"
+      - "com.shibasito.persistent=true"
+    
+    # Configuración de recursos
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    
+    environment:
+      POSTGRES_DB: banco_db
+      POSTGRES_USER: ${POSTGRES_USER:-banco_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-banco_pass123}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      
+      # Configuración adicional
+      POSTGRES_MULTIPLE_DATABES: banco_db,audit_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+    
+    ports:
+      - "5432:5432"
+    
+    networks:
+      database-network:
+        ipv4_address: 172.21.10.10
+      shibasito-network:
+        ipv4_address: 172.20.10.30
+    
+    volumes:
+      - postgres_bd1_data:/var/lib/postgresql/data
+      - postgres_bd1_logs:/var/log/postgresql
+      - ./init-scripts/postgres:/docker-entrypoint-initdb.d
+    
+    # Configuración de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "10"
+        labels: "service=bd1_postgresql"
+        tag: "{{.Name}}/{{.ID}}"
+    
+    command: >
+      postgres
+      -c logging_collector=on
+      -c log_destination=stderr
+      -c log_directory=/var/log/postgresql
+      -c log_filename=postgresql-%Y-%m-%d_%H%M%S.log
+      -c log_statement=all
+      -c log_connections=on
+      -c log_disconnections=on
+      -c shared_preload_libraries=pg_stat_statements
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-banco_user} -d banco_db -h localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 40s
+      disable: false
+
+  # =============================================================================
+  # BASE DE DATOS MYSQL (BD2) - Servicio RENIEC
+  # =============================================================================
+  bd2_mysql:
+    image: mysql:8.0
+    container_name: mysql-bd2-container
+    restart: unless-stopped
+    labels:
+      - "com.shibasito.service=bd2_mysql"
+      - "com.shibasito.layer=database"
+      - "com.shibasito.team=reniec"
+      - "com.shibasito.version=8.0"
+      - "com.shibasito.environment=docker"
+      - "com.shibasito.monitoring=true"
+      - "com.shibasito.ports=3306"
+      - "com.shibasito.persistent=true"
+    
+    # Configuración de recursos
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass123}
+      MYSQL_DATABASE: reniec_db
+      MYSQL_USER: ${MYSQL_USER:-reniec_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-reniec_pass123}
+      
+      # Configuración adicional
+      MYSQL_INITDB_SKIP_TZINFO: 1
+      MYSQL_DEFAULT_AUTHENTICATION_PLUGIN: mysql_native_password
+    
+    ports:
+      - "3306:3306"
+    
+    networks:
+      database-network:
+        ipv4_address: 172.21.10.20
+      shibasito-network:
+        ipv4_address: 172.20.10.40
+    
+    volumes:
+      - mysql_bd2_data:/var/lib/mysql
+      - mysql_bd2_logs:/var/log/mysql
+      - ./init-scripts/mysql:/docker-entrypoint-initdb.d
+    
+    # Configuración de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "10"
+        labels: "service=bd2_mysql"
+        tag: "{{.Name}}/{{.ID}}"
+    
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --log-error=/var/log/mysql/error.log
+      --general-log=1
+      --general-log-file=/var/log/mysql/general.log
+      --slow-query-log=1
+      --slow-query-log-file=/var/log/mysql/slow.log
+      --long-query-time=2
+      --max-connections=200
+      --innodb-buffer-pool-size=512M
+      --innodb-log-file-size=64M
+      --innodb-log-buffer-size=16M
+      --innodb-flush-log-at-trx-commit=1
+      --sync-binlog=1
+      --query-cache-size=64M
+      --tmp-table-size=32M
+      --max-heap-table-size=32M
+      --thread-cache-size=16
+      --table-open-cache=2000
+      --innodb-file-per-table=1
+      --innodb-open-files=500
+      --innodb-io-capacity=200
+    
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER:-reniec_user}", "-p${MYSQL_PASSWORD:-reniec_pass123}"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 60s
+      disable: false
+
+  # =============================================================================
+  # RABBITMQ - Message Broker con Management UI
+  # =============================================================================
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: rabbitmq-container
+    restart: unless-stopped
+    labels:
+      - "com.shibasito.service=rabbitmq"
+      - "com.shibasito.layer=messaging"
+      - "com.shibasito.team=platform"
+      - "com.shibasito.version=3.12"
+      - "com.shibasito.environment=docker"
+      - "com.shibasito.monitoring=true"
+      - "com.shibasito.ports=5672,15672,15671"
+      - "com.shibasito.management=true"
+    
+    # Configuración de recursos
+    deploy:
+      resources:
+        limits:
+          cpus: '0.8'
+          memory: 512M
+        reservations:
+          cpus: '0.2'
+          memory: 256M
+    
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-admin123}
+      RABBITMQ_DEFAULT_VHOST: /
+      
+      # Configuración adicional
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbit log_levels [{connection,error},{default,error}]"
+      RABBITMQ_LOG_LEVELS: error
+      RABBITMQ_VM_MEMORY_HIGH_WATERMARK: 0.6
+    
+    ports:
+      - "5672:5672"    # Puerto AMQP
+      - "15672:15672"  # Puerto Management UI
+      - "15671:15671"  # Puerto Management API
+    
+    networks:
+      shibasito-network:
+        ipv4_address: 172.20.10.50
+      database-network:
+        ipv4_address: 172.21.10.30
+    
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_logs:/var/log/rabbitmq
+      - ./rabbitmq-config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+      - ./rabbitmq-config/definitions.json:/etc/rabbitmq/definitions.json
+    
+    # Configuración de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+        labels: "service=rabbitmq"
+        tag: "{{.Name}}/{{.ID}}"
+    
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+      disable: false
+
+  # =============================================================================
+  # REDIS - Cache y Session Store
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: redis-container
+    restart: unless-stopped
+    labels:
+      - "com.shibasito.service=redis"
+      - "com.shibasito.layer=cache"
+      - "com.shibasito.team=platform"
+      - "com.shibasito.version=7"
+      - "com.shibasito.environment=docker"
+      - "com.shibasito.monitoring=true"
+      - "com.shibasito.ports=6379"
+      - "com.shibasito.persistent=true"
+    
+    # Configuración de recursos
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redispass123}
+      REDIS_APPENDONLY: "yes"
+      REDIS_APPENDFSYNC: everysec
+    
+    ports:
+      - "6379:6379"
+    
+    networks:
+      shibasito-network:
+        ipv4_address: 172.20.10.60
+      database-network:
+        ipv4_address: 172.21.10.40
+    
+    volumes:
+      - redis_data:/data
+      - ./redis-config/redis.conf:/usr/local/etc/redis/redis.conf
+    
+    # Configuración de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+        labels: "service=redis"
+        tag: "{{.Name}}/{{.ID}}"
+    
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD:-redispass123}
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+      disable: false
+
+  # =============================================================================
+  # PROMETHEUS - Sistema de monitoreo y métricas
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus-container
+    restart: unless-stopped
+    labels:
+      - "com.shibasito.service=prometheus"
+      - "com.shibasito.layer=monitoring"
+      - "com.shibasito.team=platform"
+      - "com.shibasito.version=latest"
+      - "com.shibasito.environment=docker"
+      - "com.shibasito.monitoring=true"
+      - "com.shibasito.ports=9090"
+      - "com.shibasito.prometheus=true"
+    
+    # Configuración de recursos
+    deploy:
+      resources:
+        limits:
+          cpus: '0.8'
+          memory: 512M
+        reservations:
+          cpus: '0.2'
+          memory: 256M
+    
+    environment:
+      PROMETHEUS_RETENTION: 30d
+    
+    ports:
+      - "9090:9090"
+    
+    networks:
+      monitoring-network:
+        ipv4_address: 172.22.10.10
+      shibasito-network:
+        ipv4_address: 172.20.10.70
+    
+    volumes:
+      - prometheus_data:/prometheus
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./config/prometheus/rules:/etc/prometheus/rules
+    
+    # Configuración de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+        labels: "service=prometheus"
+        tag: "{{.Name}}/{{.ID}}"
+    
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.external-url=http://localhost:9090'
+    
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+      disable: false
+
+  # =============================================================================
+  # GRAFANA - Dashboard y visualización de métricas
+  # =============================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana-container
+    restart: unless-stopped
+    labels:
+      - "com.shibasito.service=grafana"
+      - "com.shibasito.layer=monitoring"
+      - "com.shibasito.team=platform"
+      - "com.shibasito.version=latest"
+      - "com.shibasito.environment=docker"
+      - "com.shibasito.monitoring=true"
+      - "com.shibasito.ports=3000"
+      - "com.shibasito.dashboard=true"
+    
+    # Configuración de recursos
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin123}
+      GF_USERS_ALLOW_SIGN_UP: false
+      
+      # Configuración de base de datos
+      GF_DATABASE_TYPE: sqlite3
+      GF_DATABASE_PATH: /var/lib/grafana/grafana.db
+      
+      # Configuración de servidor
+      GF_SERVER_HTTP_PORT: 3000
+      GF_SERVER_ROOT_URL: http://localhost:3000
+      
+      # Configuración de plugins
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource
+      
+      # Configuración de alertas
+      GF_ALERTING_ENABLED: true
+      
+      # Configuración de métricas
+      GF_METRICS_ENABLED: true
+      GF_METRICS_INTERVAL_SECONDS: 10
+    
+    ports:
+      - "3000:3000"
+    
+    networks:
+      monitoring-network:
+        ipv4_address: 172.22.10.20
+      shibasito-network:
+        ipv4_address: 172.20.10.80
+    
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards
+    
+    # Configuración de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+        labels: "service=grafana"
+        tag: "{{.Name}}/{{.ID}}"
+    
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+      disable: false
+
+# =============================================================================
+# CONFIGURACIÓN ADICIONAL Y OPTIMIZACIONES APLICADAS
+# =============================================================================
+# OPTIMIZACIONES REALIZADAS:
+# ✓ Redes Docker personalizadas con configuraciones avanzadas
+# ✓ Health checks optimizados para todos los servicios
+# ✓ Configuración de logging driver con rotación automática
+# ✓ Límites de recursos (CPU/Memory) para cada servicio
+# ✓ Restart policies configuradas
+# ✓ Variables de entorno optimizadas con fallbacks
+# ✓ Volúmenes persistentes configurados correctamente
+# ✓ Dependencias entre servicios con health checks
+# ✓ Labels para identificación y monitoreo
+# ✓ Configuraciones de rendimiento para bases de datos
+# ✓ Puertos correctamente expuestos y documentados
+# ✓ Configuraciones adicionales de red y seguridad

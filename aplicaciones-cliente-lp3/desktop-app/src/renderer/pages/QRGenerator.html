@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador QR - Banco Desktop</title>
+    <link href="../../renderer/css/main.css" rel="stylesheet">
+    <link href="../../renderer/css/components.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="qr-generator-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-content">
+                <h1>
+                    <i class="fas fa-qrcode"></i>
+                    Generador de Códigos QR
+                </h1>
+                <p>Crea códigos QR para pagos y transferencias</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-outline" onclick="clearQRHistory()">
+                    <i class="fas fa-trash"></i>
+                    Limpiar Historial
+                </button>
+                <button class="btn btn-primary" onclick="showCustomQRModal()">
+                    <i class="fas fa-plus"></i>
+                    QR Personalizado
+                </button>
+            </div>
+        </div>
+
+        <!-- QR Generator Section -->
+        <div class="qr-generator-section">
+            <div class="generator-tabs">
+                <button class="tab-button active" onclick="switchGeneratorTab('payment')">
+                    <i class="fas fa-credit-card"></i>
+                    Pago QR
+                </button>
+                <button class="tab-button" onclick="switchGeneratorTab('transfer')">
+                    <i class="fas fa-exchange-alt"></i>
+                    Transferencia
+                </button>
+                <button class="tab-button" onclick="switchGeneratorTab('account')">
+                    <i class="fas fa-wallet"></i>
+                    Información de Cuenta
+                </button>
+                <button class="tab-button" onclick="switchGeneratorTab('custom')">
+                    <i class="fas fa-edit"></i>
+                    Personalizado
+                </button>
+            </div>
+
+            <!-- Payment QR Tab -->
+            <div id="paymentQRTab" class="generator-tab active">
+                <div class="qr-form-container">
+                    <div class="form-section">
+                        <h3>Crear Código QR para Pago</h3>
+                        <form id="paymentQRForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="paymentAccount">Cuenta Origen *</label>
+                                    <select id="paymentAccount" name="accountId" class="form-control" required>
+                                        <option value="">Seleccionar cuenta</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="paymentAmount">Monto (Opcional)</label>
+                                    <input type="number" id="paymentAmount" name="amount" 
+                                           class="form-control" step="0.01" min="0" placeholder="0.00">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="paymentConcept">Concepto *</label>
+                                    <input type="text" id="paymentConcept" name="concept" 
+                                           class="form-control" maxlength="100" 
+                                           placeholder="Ej: Pago de servicios" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="paymentReference">Referencia (Opcional)</label>
+                                    <input type="text" id="paymentReference" name="reference" 
+                                           class="form-control" maxlength="50" 
+                                           placeholder="Número de referencia">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="paymentDescription">Descripción Adicional</label>
+                                <textarea id="paymentDescription" name="description" class="form-control" 
+                                         rows="3" maxlength="200" 
+                                         placeholder="Descripción detallada del pago"></textarea>
+                            </div>
+                            
+                            <div class="qr-preview-section" id="paymentPreview" style="display: none;">
+                                <h4>Vista Previa del QR</h4>
+                                <div class="qr-preview-content">
+                                    <div class="qr-code-display">
+                                        <img id="paymentQRImage" src="" alt="Código QR" style="display: none;">
+                                        <div class="qr-loading" id="paymentQRLoading">
+                                            <div class="spinner"></div>
+                                            <p>Generando código QR...</p>
+                                        </div>
+                                    </div>
+                                    <div class="qr-info">
+                                        <div class="qr-detail">
+                                            <strong>Cuenta:</strong>
+                                            <span id="paymentPreviewAccount">-</span>
+                                        </div>
+                                        <div class="qr-detail">
+                                            <strong>Monto:</strong>
+                                            <span id="paymentPreviewAmount">-</span>
+                                        </div>
+                                        <div class="qr-detail">
+                                            <strong>Concepto:</strong>
+                                            <span id="paymentPreviewConcept">-</span>
+                                        </div>
+                                        <div class="qr-detail">
+                                            <strong>Referencia:</strong>
+                                            <span id="paymentPreviewReference">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-outline" onclick="previewPaymentQR()">
+                                    <i class="fas fa-eye"></i>
+                                    Vista Previa
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-qrcode"></i>
+                                    Generar QR
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transfer QR Tab -->
+            <div id="transferQRTab" class="generator-tab">
+                <div class="qr-form-container">
+                    <div class="form-section">
+                        <h3>Crear Código QR para Transferencia</h3>
+                        <form id="transferQRForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="sourceAccount">Cuenta Origen *</label>
+                                    <select id="sourceAccount" name="sourceAccount" class="form-control" required>
+                                        <option value="">Seleccionar cuenta</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="transferAmount">Monto *</label>
+                                    <input type="number" id="transferAmount" name="amount" 
+                                           class="form-control" step="0.01" min="0.01" 
+                                           placeholder="0.00" required>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="destinationBank">Banco Destino</label>
+                                    <select id="destinationBank" name="destinationBank" class="form-control">
+                                        <option value="banco_desktop">Banco Desktop</option>
+                                        <option value="bcb">Banco Central</option>
+                                        <option value="continental">Banco Continental</option>
+                                        <option value="credito">Banco de Crédito del Perú</option>
+                                        <option value="interbank">Interbank</option>
+                                        <option value="scotiabank">Scotiabank</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="destinationAccount">Número de Cuenta Destino *</label>
+                                    <input type="text" id="destinationAccount" name="destinationAccount" 
+                                           class="form-control" placeholder="20XXXXXXXX" required>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="transferConcept">Concepto *</label>
+                                <input type="text" id="transferConcept" name="concept" 
+                                       class="form-control" maxlength="100" 
+                                       placeholder="Ej: Transferencia a familiar" required>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-qrcode"></i>
+                                    Generar QR de Transferencia
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Info QR Tab -->
+            <div id="accountQRTab" class="generator-tab">
+                <div class="qr-form-container">
+                    <div class="form-section">
+                        <h3>Crear QR con Información de Cuenta</h3>
+                        <form id="accountQRForm">
+                            <div class="form-group">
+                                <label for="accountSelect">Seleccionar Cuenta *</label>
+                                <select id="accountSelect" name="accountId" class="form-control" required>
+                                    <option value="">Seleccionar cuenta</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="qrPurpose">Propósito del QR</label>
+                                <select id="qrPurpose" name="purpose" class="form-control">
+                                    <option value="receive_payment">Recibir Pago</option>
+                                    <option value="account_info">Información de Cuenta</option>
+                                    <option value="contact_info">Información de Contacto</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="additionalInfo">Información Adicional</label>
+                                <textarea id="additionalInfo" name="additionalInfo" class="form-control" 
+                                         rows="3" maxlength="200" 
+                                         placeholder="Cualquier información adicional que deseas incluir"></textarea>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-qrcode"></i>
+                                    Generar QR de Cuenta
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Custom QR Tab -->
+            <div id="customQRTab" class="generator-tab">
+                <div class="qr-form-container">
+                    <div class="form-section">
+                        <h3>Crear Código QR Personalizado</h3>
+                        <form id="customQRForm">
+                            <div class="form-group">
+                                <label for="customText">Texto o URL *</label>
+                                <textarea id="customText" name="customText" class="form-control" 
+                                         rows="4" maxlength="500" 
+                                         placeholder="Ingresa el texto o URL que deseas convertir en QR" required></textarea>
+                                <small class="form-hint">Máximo 500 caracteres</small>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="qrSize">Tamaño</label>
+                                    <select id="qrSize" name="size" class="form-control">
+                                        <option value="200">200x200 px</option>
+                                        <option value="300" selected>300x300 px</option>
+                                        <option value="400">400x400 px</option>
+                                        <option value="500">500x500 px</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="qrColor">Color</label>
+                                    <input type="color" id="qrColor" name="color" 
+                                           class="form-control" value="#000000">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="qrLabel">Etiqueta (Opcional)</label>
+                                <input type="text" id="qrLabel" name="label" 
+                                       class="form-control" maxlength="50" 
+                                       placeholder="Etiqueta para el código QR">
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-qrcode"></i>
+                                    Generar QR Personalizado
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generated QR Display -->
+        <div id="generatedQRDisplay" class="generated-qr-section" style="display: none;">
+            <div class="section-header">
+                <h3>Código QR Generado</h3>
+            </div>
+            <div class="qr-display-container">
+                <div class="qr-display-card">
+                    <div class="qr-image-container">
+                        <img id="generatedQRImage" src="" alt="Código QR Generado">
+                        <div class="qr-label" id="generatedQRLabel"></div>
+                    </div>
+                    <div class="qr-actions">
+                        <button class="btn btn-outline" onclick="downloadQR()">
+                            <i class="fas fa-download"></i>
+                            Descargar
+                        </button>
+                        <button class="btn btn-outline" onclick="copyQRData()">
+                            <i class="fas fa-copy"></i>
+                            Copiar Datos
+                        </button>
+                        <button class="btn btn-outline" onclick="printQR()">
+                            <i class="fas fa-print"></i>
+                            Imprimir
+                        </button>
+                        <button class="btn btn-secondary" onclick="generateNewQR()">
+                            <i class="fas fa-plus"></i>
+                            Generar Nuevo
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="qr-details-card">
+                    <h4>Detalles del Código QR</h4>
+                    <div class="qr-details-list" id="generatedQRDetails">
+                        <!-- Se llena dinámicamente -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- QR History -->
+        <div class="section">
+            <div class="section-header">
+                <h3>Historial de Códigos QR</h3>
+            </div>
+            <div id="qrHistory" class="qr-history-grid">
+                <!-- El historial se carga dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class QRGeneratorPage {
+            constructor() {
+                this.accounts = [];
+                this.generatedQRs = [];
+                this.currentTab = 'payment';
+                this.currentQR = null;
+            }
+
+            async render() {
+                return `
+                    <div id="qr-generator-content">
+                        ${document.getElementById('qr-generator-container').outerHTML}
+                    </div>
+                `;
+            }
+
+            async mount() {
+                await this.loadAccounts();
+                await this.loadQRHistory();
+                this.setupEventListeners();
+                this.populateAccountDropdowns();
+            }
+
+            async loadAccounts() {
+                try {
+                    if (window.electronAPI?.database) {
+                        const result = await window.electronAPI.database.read('accounts', {});
+                        this.accounts = result || [];
+                    } else {
+                        this.accounts = [
+                            { id: 1, account_number: '201234567890', account_type: 'ahorros', balance: 8420.50 },
+                            { id: 2, account_number: '201234567891', account_type: 'corriente', balance: 5000.00 }
+                        ];
+                    }
+                } catch (error) {
+                    console.error('Error loading accounts:', error);
+                }
+            }
+
+            async loadQRHistory() {
+                try {
+                    // Cargar historial del localStorage o base de datos
+                    const history = localStorage.getItem('qrHistory');
+                    if (history) {
+                        this.generatedQRs = JSON.parse(history);
+                    } else {
+                        this.generatedQRs = [];
+                    }
+                    this.renderQRHistory();
+                } catch (error) {
+                    console.error('Error loading QR history:', error);
+                    this.generatedQRs = [];
+                }
+            }
+
+            setupEventListeners() {
+                // Payment form
+                const paymentForm = document.getElementById('paymentQRForm');
+                if (paymentForm) {
+                    paymentForm.addEventListener('submit', (e) => this.handlePaymentQR(e));
+                }
+
+                // Transfer form
+                const transferForm = document.getElementById('transferQRForm');
+                if (transferForm) {
+                    transferForm.addEventListener('submit', (e) => this.handleTransferQR(e));
+                }
+
+                // Account form
+                const accountForm = document.getElementById('accountQRForm');
+                if (accountForm) {
+                    accountForm.addEventListener('submit', (e) => this.handleAccountQR(e));
+                }
+
+                // Custom form
+                const customForm = document.getElementById('customQRForm');
+                if (customForm) {
+                    customForm.addEventListener('submit', (e) => this.handleCustomQR(e));
+                }
+
+                // Update previews
+                ['paymentAccount', 'paymentAmount', 'paymentConcept', 'paymentReference'].forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.addEventListener('change', () => this.updatePaymentPreview());
+                    }
+                });
+            }
+
+            populateAccountDropdowns() {
+                const dropdowns = ['paymentAccount', 'sourceAccount', 'accountSelect'];
+                
+                dropdowns.forEach(dropdownId => {
+                    const dropdown = document.getElementById(dropdownId);
+                    if (dropdown && this.accounts.length > 0) {
+                        const options = this.accounts.map(account => 
+                            `<option value="${account.id}">${this.formatAccountNumber(account.account_number)} - ${window.utils.toTitleCase(account.account_type)} (${window.utils.formatCurrency(account.balance)})</option>`
+                        ).join('');
+                        
+                        if (dropdownId !== 'accountSelect') {
+                            dropdown.innerHTML = '<option value="">Seleccionar cuenta</option>' + options;
+                        } else {
+                            dropdown.innerHTML = '<option value="">Seleccionar cuenta</option>' + options;
+                        }
+                    }
+                });
+            }
+
+            switchGeneratorTab(tabName) {
+                // Hide all tabs
+                document.querySelectorAll('.generator-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                
+                // Remove active class from all buttons
+                document.querySelectorAll('.tab-button').forEach(button => {
+                    button.classList.remove('active');
+                });
+                
+                // Show selected tab
+                document.getElementById(tabName + 'QRTab').classList.add('active');
+                event.target.classList.add('active');
+                
+                this.currentTab = tabName;
+            }
+
+            updatePaymentPreview() {
+                const accountId = document.getElementById('paymentAccount')?.value;
+                const amount = document.getElementById('paymentAmount')?.value;
+                const concept = document.getElementById('paymentConcept')?.value;
+                const reference = document.getElementById('paymentReference')?.value;
+
+                if (accountId && concept) {
+                    const account = this.accounts.find(acc => acc.id == accountId);
+                    
+                    document.getElementById('paymentPreviewAccount').textContent = 
+                        account ? this.formatAccountNumber(account.account_number) : '-';
+                    document.getElementById('paymentPreviewAmount').textContent = 
+                        amount ? window.utils.formatCurrency(amount) : 'Sin monto específico';
+                    document.getElementById('paymentPreviewConcept').textContent = concept;
+                    document.getElementById('paymentPreviewReference').textContent = reference || '-';
+                    
+                    document.getElementById('paymentPreview').style.display = 'block';
+                } else {
+                    document.getElementById('paymentPreview').style.display = 'none';
+                }
+            }
+
+            async handlePaymentQR(event) {
+                event.preventDefault();
+                
+                const formData = new FormData(event.target);
+                const qrData = {
+                    type: 'payment',
+                    accountId: parseInt(formData.get('accountId')),
+                    amount: parseFloat(formData.get('amount')) || null,
+                    concept: formData.get('concept'),
+                    reference: formData.get('reference') || '',
+                    description: formData.get('description') || '',
+                    timestamp: new Date().toISOString()
+                };
+
+                await this.generateQR(qrData);
+            }
+
+            async handleTransferQR(event) {
+                event.preventDefault();
+                
+                const formData = new FormData(event.target);
+                const qrData = {
+                    type: 'transfer',
+                    sourceAccountId: parseInt(formData.get('sourceAccount')),
+                    amount: parseFloat(formData.get('amount')),
+                    destinationBank: formData.get('destinationBank'),
+                    destinationAccount: formData.get('destinationAccount'),
+                    concept: formData.get('concept'),
+                    timestamp: new Date().toISOString()
+                };
+
+                await this.generateQR(qrData);
+            }
+
+            async handleAccountQR(event) {
+                event.preventDefault();
+                
+                const formData = new FormData(event.target);
+                const qrData = {
+                    type: 'account',
+                    accountId: parseInt(formData.get('accountId')),
+                    purpose: formData.get('purpose'),
+                    additionalInfo: formData.get('additionalInfo') || '',
+                    timestamp: new Date().toISOString()
+                };
+
+                await this.generateQR(qrData);
+            }
+
+            async handleCustomQR(event) {
+                event.preventDefault();
+                
+                const formData = new FormData(event.target);
+                const qrData = {
+                    type: 'custom',
+                    text: formData.get('customText'),
+                    size: parseInt(formData.get('size')),
+                    color: formData.get('color'),
+                    label: formData.get('label') || '',
+                    timestamp: new Date().toISOString()
+                };
+
+                await this.generateQR(qrData);
+            }
+
+            async generateQR(qrData) {
+                try {
+                    // Show loading state
+                    document.getElementById('paymentQRLoading').style.display = 'flex';
+                    
+                    // Generate QR data string
+                    const qrString = this.formatQRData(qrData);
+                    
+                    // Call backend to generate QR
+                    if (window.electronAPI?.qrcode) {
+                        const result = await window.electronAPI.qrcode.generate(qrString);
+                        if (result.success) {
+                            await this.displayGeneratedQR(result.data, qrData);
+                        } else {
+                            throw new Error(result.error);
+                        }
+                    } else {
+                        // Fallback: use a placeholder or simple QR generation
+                        await this.generatePlaceholderQR(qrString, qrData);
+                    }
+                    
+                } catch (error) {
+                    console.error('Error generating QR:', error);
+                    window.bancoApp.showNotification('Error al generar código QR: ' + error.message, 'error');
+                } finally {
+                    document.getElementById('paymentQRLoading').style.display = 'none';
+                }
+            }
+
+            formatQRData(qrData) {
+                switch (qrData.type) {
+                    case 'payment':
+                        return `PAYMENT|${qrData.accountId}|${qrData.concept}|${qrData.amount || '0'}|${qrData.reference || ''}`;
+                    case 'transfer':
+                        return `TRANSFER|${qrData.sourceAccountId}|${qrData.destinationAccount}|${qrData.amount}|${qrData.concept}`;
+                    case 'account':
+                        return `ACCOUNT|${qrData.accountId}|${qrData.purpose}`;
+                    case 'custom':
+                        return qrData.text;
+                    default:
+                        return 'QR_DATA|UNKNOWN';
+                }
+            }
+
+            async displayGeneratedQR(qrImageData, qrData) {
+                this.currentQR = {
+                    imageData: qrImageData,
+                    data: qrData,
+                    id: Date.now()
+                };
+
+                // Display QR
+                const qrImage = document.getElementById('generatedQRImage');
+                const qrLabel = document.getElementById('generatedQRLabel');
+                
+                qrImage.src = qrImageData;
+                qrImage.style.display = 'block';
+                qrLabel.textContent = this.getQRLabel(qrData);
+                
+                // Show display section
+                document.getElementById('generatedQRDisplay').style.display = 'block';
+                
+                // Update details
+                this.updateQRDetails(qrData);
+                
+                // Add to history
+                this.addToHistory(this.currentQR);
+                
+                // Scroll to display
+                document.getElementById('generatedQRDisplay').scrollIntoView({ behavior: 'smooth' });
+                
+                window.bancoApp.showNotification('Código QR generado exitosamente', 'success');
+            }
+
+            async generatePlaceholderQR(qrString, qrData) {
+                // Create a simple placeholder (in a real app, this would use a proper QR library)
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                canvas.width = 300;
+                canvas.height = 300;
+                
+                // Simple placeholder pattern
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, 300, 300);
+                
+                ctx.fillStyle = '#000000';
+                for (let i = 0; i < 20; i++) {
+                    for (let j = 0; j < 20; j++) {
+                        if ((i + j) % 3 === 0) {
+                            ctx.fillRect(i * 15, j * 15, 15, 15);
+                        }
+                    }
+                }
+                
+                const qrImageData = canvas.toDataURL();
+                await this.displayGeneratedQR(qrImageData, qrData);
+            }
+
+            getQRLabel(qrData) {
+                const labels = {
+                    'payment': 'Código QR de Pago',
+                    'transfer': 'Código QR de Transferencia',
+                    'account': 'Código QR de Cuenta',
+                    'custom': 'Código QR Personalizado'
+                };
+                return labels[qrData.type] || 'Código QR';
+            }
+
+            updateQRDetails(qrData) {
+                const detailsContainer = document.getElementById('generatedQRDetails');
+                let detailsHTML = '';
+
+                switch (qrData.type) {
+                    case 'payment':
+                        const account = this.accounts.find(acc => acc.id === qrData.accountId);
+                        detailsHTML = `
+                            <div class="qr-detail-item">
+                                <label>Tipo:</label>
+                                <span>Pago QR</span>
+                            </div>
+                            <div class="qr-detail-item">
+                                <label>Cuenta:</label>
+                                <span>${account ? this.formatAccountNumber(account.account_number) : 'N/A'}</span>
+                            </div>
+                            <div class="qr-detail-item">
+                                <label>Concepto:</label>
+                                <span>${qrData.concept}</span>
+                            </div>
+                            ${qrData.amount ? `
+                                <div class="qr-detail-item">
+                                    <label>Monto:</label>
+                                    <span>${window.utils.formatCurrency(qrData.amount)}</span>
+                                </div>
+                            ` : ''}
+                            ${qrData.reference ? `
+                                <div class="qr-detail-item">
+                                    <label>Referencia:</label>
+                                    <span>${qrData.reference}</span>
+                                </div>
+                            ` : ''}
+                            <div class="qr-detail-item">
+                                <label>Generado:</label>
+                                <span>${window.utils.formatDate(qrData.timestamp, 'datetime')}</span>
+                            </div>
+                        `;
+                        break;
+                    case 'transfer':
+                        detailsHTML = `
+                            <div class="qr-detail-item">
+                                <label>Tipo:</label>
+                                <span>Transferencia QR</span>
+                            </div>
+                            <div class="qr-detail-item">
+                                <label>Monto:</label>
+                                <span>${window.utils.formatCurrency(qrData.amount)}</span>
+                            </div>
+                            <div class="qr-detail-item">
+                                <label>Cuenta Destino:</label>
+                                <span>${this.formatAccountNumber(qrData.destinationAccount)}</span>
+                            </div>
+                            <div class="qr-detail-item">
+                                <label>Concepto:</label>
+                                <span>${qrData.concept}</span>
+                            </div>
+                            <div class="qr-detail-item">
+                                <label>Generado:</label>
+                                <span>${window.utils.formatDate(qrData.timestamp, 'datetime')}</span>
+                            </div>
+                        `;
+                        break;
+                    case 'custom':
+                        detailsHTML = `
+                            <div class="qr-detail-item">
+                                <label>Tipo:</label>
+                                <span>QR Personalizado</span>
+                            </div>
+                            <div class="qr-detail-item">
+                                <label>Contenido:</label>
+                                <span>${qrData.text.substring(0, 50)}${qrData.text.length > 50 ? '...' : ''}</span>
+                            </div>
+                            <div class="qr-detail-item">
+                                <label>Tamaño:</label>
+                                <span>${qrData.size}px</span>
+                            </div>
+                            <div class="qr-detail-item">
+                                <label>Generado:</label>
+                                <span>${window.utils.formatDate(qrData.timestamp, 'datetime')}</span>
+                            </div>
+                        `;
+                        break;
+                }
+
+                detailsContainer.innerHTML = detailsHTML;
+            }
+
+            addToHistory(qr) {
+                this.generatedQRs.unshift(qr);
+                
+                // Keep only last 20 QR codes
+                if (this.generatedQRs.length > 20) {
+                    this.generatedQRs = this.generatedQRs.slice(0, 20);
+                }
+                
+                // Save to localStorage
+                try {
+                    localStorage.setItem('qrHistory', JSON.stringify(this.generatedQRs));
+                } catch (error) {
+                    console.warn('Could not save QR history:', error);
+                }
+                
+                this.renderQRHistory();
+            }
+
+            renderQRHistory() {
+                const container = document.getElementById('qrHistory');
+                if (!container) return;
+
+                if (this.generatedQRs.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <i class="fas fa-qrcode"></i>
+                            </div>
+                            <h3>No hay códigos QR generados</h3>
+                            <p>Los códigos QR que generes aparecerán aquí</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = this.generatedQRs.map(qr => `
+                    <div class="qr-history-item" onclick="qrGeneratorPage.loadQRFromHistory(${qr.id})">
+                        <div class="qr-history-image">
+                            <img src="${qr.imageData}" alt="QR Code">
+                        </div>
+                        <div class="qr-history-info">
+                            <h5>${this.getQRLabel(qr.data)}</h5>
+                            <p>${window.utils.formatDate(qr.data.timestamp, 'short')}</p>
+                        </div>
+                        <div class="qr-history-actions">
+                            <button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); qrGeneratorPage.downloadHistoryQR(${qr.id})">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            loadQRFromHistory(qrId) {
+                const qr = this.generatedQRs.find(q => q.id === qrId);
+                if (qr) {
+                    this.currentQR = qr;
+                    this.displayGeneratedQR(qr.imageData, qr.data);
+                }
+            }
+
+            downloadHistoryQR(qrId) {
+                const qr = this.generatedQRs.find(q => q.id === qrId);
+                if (qr) {
+                    this.downloadQRImage(qr.imageData, this.getQRLabel(qr.data));
+                }
+            }
+
+            formatAccountNumber(accountNumber) {
+                return accountNumber.replace(/(\d{4})(\d{4})(\d{4})(\d{2})/, '$1-$2-$3-$4');
+            }
+        }
+
+        // Funciones globales
+        function switchGeneratorTab(tabName) {
+            qrGeneratorPage.switchGeneratorTab(tabName);
+        }
+
+        function previewPaymentQR() {
+            qrGeneratorPage.updatePaymentPreview();
+            window.bancoApp.showNotification('Vista previa actualizada', 'info');
+        }
+
+        function clearQRHistory() {
+            if (confirm('¿Estás seguro de que deseas limpiar todo el historial de códigos QR?')) {
+                qrGeneratorPage.generatedQRs = [];
+                localStorage.removeItem('qrHistory');
+                qrGeneratorPage.renderQRHistory();
+                window.bancoApp.showNotification('Historial limpiado', 'success');
+            }
+        }
+
+        function showCustomQRModal() {
+            // Switch to custom tab
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.generator-tab').forEach(tab => tab.classList.remove('active'));
+            
+            document.querySelector('.tab-button:last-child').classList.add('active');
+            document.getElementById('customQRTab').classList.add('active');
+        }
+
+        function downloadQR() {
+            if (qrGeneratorPage.currentQR) {
+                const label = qrGeneratorPage.getQRLabel(qrGeneratorPage.currentQR.data);
+                qrGeneratorPage.downloadQRImage(qrGeneratorPage.currentQR.imageData, label);
+            }
+        }
+
+        function copyQRData() {
+            if (qrGeneratorPage.currentQR) {
+                const qrString = qrGeneratorPage.formatQRData(qrGeneratorPage.currentQR.data);
+                window.utils.copyToClipboard(qrString).then(success => {
+                    if (success) {
+                        window.bancoApp.showNotification('Datos copiados al portapapeles', 'success');
+                    } else {
+                        window.bancoApp.showNotification('Error al copiar datos', 'error');
+                    }
+                });
+            }
+        }
+
+        function printQR() {
+            window.bancoApp.showNotification('Función de impresión en desarrollo', 'info');
+        }
+
+        function generateNewQR() {
+            document.getElementById('generatedQRDisplay').style.display = 'none';
+            window.bancoApp.showNotification('Puedes generar un nuevo código QR', 'info');
+        }
+
+        // Extender la clase QRGeneratorPage
+        QRGeneratorPage.prototype.downloadQRImage = function(imageData, label) {
+            const link = document.createElement('a');
+            link.download = `qr_${label.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}.png`;
+            link.href = imageData;
+            link.click();
+        };
+
+        // Instanciar página
+        window.QRGeneratorPage = QRGeneratorPage;
+        window.qrGeneratorPage = new QRGeneratorPage();
+    </script>
+
+    <style>
+        .generator-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 30px;
+            background: var(--surface-color);
+            padding: 5px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .tab-button:hover {
+            background: var(--background-color);
+            color: var(--primary-color);
+        }
+
+        .tab-button.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .generator-tab {
+            display: none;
+        }
+
+        .generator-tab.active {
+            display: block;
+        }
+
+        .qr-form-container {
+            background: var(--surface-color);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 30px;
+        }
+
+        .form-section h3 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .qr-preview-section {
+            background: var(--background-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .qr-preview-section h4 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .qr-preview-content {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .qr-code-display {
+            text-align: center;
+        }
+
+        .qr-loading {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            padding: 40px;
+        }
+
+        .qr-info {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .qr-detail {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .qr-detail strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .qr-detail span {
+            color: var(--text-secondary);
+        }
+
+        .generated-qr-section {
+            margin-bottom: 40px;
+        }
+
+        .qr-display-container {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 30px;
+            background: var(--surface-color);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 30px;
+        }
+
+        .qr-display-card {
+            text-align: center;
+        }
+
+        .qr-image-container {
+            margin-bottom: 20px;
+        }
+
+        .qr-image-container img {
+            max-width: 300px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .qr-label {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 10px;
+        }
+
+        .qr-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .qr-details-card h4 {
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        .qr-details-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .qr-detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--background-color);
+            border-radius: 6px;
+        }
+
+        .qr-detail-item label {
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .qr-detail-item span {
+            color: var(--text-primary);
+        }
+
+        .qr-history-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .qr-history-item {
+            background: var(--surface-color);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .qr-history-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .qr-history-image {
+            margin-bottom: 10px;
+        }
+
+        .qr-history-image img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+        }
+
+        .qr-history-info h5 {
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: var(--text-primary);
+        }
+
+        .qr-history-info p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .qr-history-actions {
+            margin-top: 10px;
+        }
+
+        .form-hint {
+            color: var(--text-secondary);
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .generator-tabs {
+                flex-direction: column;
+            }
+
+            .qr-preview-content {
+                grid-template-columns: 1fr;
+            }
+
+            .qr-display-container {
+                grid-template-columns: 1fr;
+            }
+
+            .qr-actions {
+                justify-content: center;
+            }
+
+            .qr-history-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+        }
+    </style>
+</body>
+</html>

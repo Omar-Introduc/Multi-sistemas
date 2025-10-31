@@ -1,0 +1,131 @@
+# Dockerfile para Sistema de Testing
+# =================================
+
+# Imagen base con Python 3.11
+FROM python:3.11-slim-bullseye
+
+# Metadatos
+LABEL maintainer="Shibasito Testing System <testing@shibasito.com>"
+LABEL description="Sistema de Testing Final v2.0 para Sistema Distribuido"
+LABEL version="2.0.0"
+
+# Variables de entorno
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DEBIAN_FRONTEND=noninteractive \
+    TESTING_ENV=docker
+
+# Crear usuario no-root para seguridad
+RUN groupadd -r testing && useradd -r -g testing -d /app -s /bin/bash testing
+
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    # Herramientas de desarrollo
+    gcc \
+    g++ \
+    make \
+    curl \
+    wget \
+    git \
+    # Herramientas de testing
+    xvfb \
+    libx11-6 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libdrm2 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libxss1 \
+    libgbm1 \
+    # Herramientas de seguridad
+    openssl \
+    ca-certificates \
+    # Limpieza
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    /tmp/* \
+    /var/tmp/*
+
+# Crear directorio de trabajo
+WORKDIR /app
+
+# Configurar timezone
+ENV TZ=UTC
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# Copiar archivo de requirements primero (para caching)
+COPY requirements-test.txt .
+
+# Instalar dependencias Python
+RUN pip install --upgrade pip && \
+    pip install -r requirements-test.txt
+
+# Instalar Playwright y navegadores
+RUN pip install playwright && \
+    playwright install chromium --with-deps && \
+    playwright install-deps chromium
+
+# Instalar herramientas adicionales
+RUN pip install locust bandit safety codecov && \
+    npm install -g pm2@latest 2>/dev/null || true
+
+# Instalar dependencias específicas para testing
+RUN pip install pytest-xdist pytest-html pytest-json-report \
+    factory-boy faker responses httpx && \
+    pip install psutil memory-profiler matplotlib seaborn pandas
+
+# Copiar código del sistema de testing
+COPY . .
+
+# Crear directorios necesarios
+RUN mkdir -p reports execution_logs \
+    unit_tests integration_tests e2e_tests performance_tests security_tests && \
+    chown -R testing:testing /app
+
+# Cambiar a usuario no-root
+USER testing
+
+# Configurar variables de entorno adicionales
+ENV REPORTS_DIR=/app/reports \
+    LOGS_DIR=/app/execution_logs \
+    TEST_DATA_DIR=/app/test_data \
+    COVERAGE_DIR=/app/reports/coverage
+
+# Crear scripts de utilidad
+RUN echo '#!/bin/bash\n\
+set -e\n\
+\necho "🎯 Iniciando Sistema de Testing Final v2.0"\n\
+\n\
+# Verificar servicios\necho "🔍 Verificando servicios..."\n\
+python validate_system.py --verbose\n\
+\n\
+# Ejecutar tests\necho "🧪 Ejecutando tests..."\n\
+python run_all_tests.py "$@"\n\
+\n\
+# Generar reportes\necho "📊 Generando reportes..."\n\
+python generate_final_report.py\n\
+\necho "✅ Testing completado!"\n\
+' > /app/run_testing.sh && \
+    chmod +x /app/run_testing.sh
+
+# Comando por defecto
+CMD ["python", "run_all_tests.py"]
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:8001/health', timeout=5)" || \
+        curl -f http://localhost:8004/health || exit 1
+
+# Exponer puertos (si se necesita acceso web)
+EXPOSE 8001 8002 8004 8005 8080 4444 5674 15674 5433 6380 4444 4443 9091 3001
+
+# Metadata adicional
+LABEL com.shibasito.testing.version="2.0.0" \
+      com.shibasito.testing.build-date="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+      com.shibasito.testing.dockerfile.version="1.0"

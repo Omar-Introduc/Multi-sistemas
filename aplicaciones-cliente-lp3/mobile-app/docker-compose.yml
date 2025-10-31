@@ -1,0 +1,82 @@
+# Docker Compose para Aplicación Cliente Móvil
+# React Native/Expo Development Environment
+
+version: '3.8'
+
+services:
+  mobile-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mobile-app-dev
+    ports:
+      # Metro Bundler (React Native Packager)
+      - "8081:8081"
+      # Expo development server
+      - "19000:19000"
+      - "19001:19001"
+    volumes:
+      # Montar código fuente para desarrollo en tiempo real
+      - .:/app
+      # Evitar conflictos con node_modules
+      - /app/node_modules
+      # Cache de npm para mejor performance
+      - npm-cache:/home/reactjs/.npm
+    environment:
+      # Variables de entorno para desarrollo
+      - NODE_ENV=development
+      - REACT_NATIVE_PACKAGER_HOSTNAME=0.0.0.0
+      - EXPO_USE_STATIC=1
+      - ANDROID_HOME=/opt/android-sdk
+      - JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+    # Habilitar interactivo para desarrollo
+    stdin_open: true
+    tty: true
+    # Comando por defecto para iniciar el servidor de desarrollo
+    command: npm start
+    networks:
+      - mobile-network
+
+volumes:
+  npm-cache:
+    driver: local
+
+networks:
+  mobile-network:
+    driver: bridge
+
+# Servicios adicionales para desarrollo completo
+
+  # Emulador Android (opcional - requiere configuración adicional)
+  android-emulator:
+    build:
+      context: .
+      dockerfile: Dockerfile.emulator  # Se puede crear un Dockerfile separado para emulador
+    container_name: android-emulator
+    ports:
+      - "5554:5554"
+      - "5555:5555"
+    environment:
+      - ANDROID_HOME=/opt/android-sdk
+    networks:
+      - mobile-network
+    # Este servicio sería opcional y requeriría configuración adicional
+    profiles:
+      - with-emulator
+
+  # Servicio de base de datos para desarrollo (ejemplo)
+  mongo-dev:
+    image: mongo:5
+    container_name: mobile-mongo-dev
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=mobile_app_dev
+    networks:
+      - mobile-network
+
+volumes:
+  mongo-data:
+    driver: local

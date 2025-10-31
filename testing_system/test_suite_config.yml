@@ -1,0 +1,212 @@
+# Configuración del Sistema de Testing Completo
+# Testing System Configuration
+
+# Configuración General
+general:
+  project_name: "Sistema Distribuido Shibasito"
+  version: "2.0.0"
+  test_environment: "production"  # development, staging, production
+  parallel_execution: true
+  max_parallel_workers: 8
+  timeout_default: 300  # segundos
+  retry_failed_tests: 2
+  stop_on_first_failure: false
+
+# Configuración de Reportes
+reporting:
+  output_formats:
+    - html
+    - json
+    - pdf
+  generate_charts: true
+  include_screenshots: true
+  generate_executive_summary: true
+  output_directory: "./reports"
+  retention_days: 30
+
+# Configuración de Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_directory: "./execution_logs"
+  max_log_size_mb: 100
+  log_retention_days: 7
+  console_output: true
+  structured_logging: true
+
+# Suite de Tests Unitarios
+unit_tests:
+  enabled: true
+  directory: "./unit"
+  test_patterns:
+    - "test_*.py"
+    - "*_test.py"
+  coverage_threshold: 80
+  parallel_execution: true
+  coverage_report: true
+  mock_external_apis: true
+
+# Suite de Tests de Integración
+integration_tests:
+  enabled: true
+  directory: "./integration"
+  database_reset: true
+  external_dependencies:
+    - rabbitmq
+    - redis
+    - postgres
+  api_timeout: 30
+  retry_failed_tests: 1
+
+# Suite de Tests E2E (End-to-End)
+e2e_tests:
+  enabled: true
+  directory: "./e2e"
+  browser: "chromium"  # chromium, firefox, safari
+  headless: true
+  screenshot_on_failure: true
+  video_on_failure: true
+  window_size: [1920, 1080]
+  timeout: 60
+
+# Suite de Tests de Performance
+performance_tests:
+  enabled: true
+  directory: "./performance"
+  test_types:
+    - load_testing
+    - stress_testing
+    - endurance_testing
+    - spike_testing
+  concurrency_levels: [10, 50, 100, 500]
+  duration_seconds: 300
+  memory_profiling: true
+  cpu_profiling: true
+
+# Suite de Tests de Seguridad
+security_tests:
+  enabled: true
+  directory: "./security"
+  scan_dependencies: true
+  check_sql_injection: true
+  check_xss: true
+  check_auth_bypass: true
+  vulnerability_scan: true
+
+# Servicios a Probar
+services:
+  lp1_banco:
+    name: "Servicio Banco LP1"
+    url: "http://localhost:8001"
+    health_check: "/health"
+    test_endpoints:
+      - "/api/accounts"
+      - "/api/transactions"
+      - "/api/customers"
+    required_dependencies:
+      - postgres
+      - redis
+
+  lp2_reniec:
+    name: "Servicio RENIEC LP2"
+    url: "http://localhost:8002"
+    health_check: "/health"
+    test_endpoints:
+      - "/api/citizens"
+      - "/api/documents"
+      - "/api/verification"
+    required_dependencies:
+      - postgres
+
+  rabbitmq:
+    name: "Message Broker"
+    url: "http://localhost:15672"
+    username: "guest"
+    password: "guest"
+    test_queues:
+      - "banco-queue"
+      - "reniec-queue"
+
+  redis:
+    name: "Cache Service"
+    url: "redis://localhost:6379"
+    test_keys: ["test:*", "session:*"]
+
+# Configuración de Notificaciones
+notifications:
+  email:
+    enabled: true
+    smtp_server: "smtp.gmail.com"
+    smtp_port: 587
+    username: "testing@empresa.com"
+    recipients: ["qa-team@empresa.com", "dev-team@empresa.com"]
+    on_success: false
+    on_failure: true
+    on_regression: true
+
+  slack:
+    enabled: true
+    webhook_url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+    channel: "#testing-reports"
+    notify_on: ["failure", "critical", "regression"]
+
+# Configuración CI/CD
+cicd:
+  github_actions:
+    enabled: true
+    workflow_file: ".github/workflows/testing.yml"
+    required_check_runs:
+      - unit_tests
+      - integration_tests
+      - security_tests
+
+  jenkins:
+    enabled: false
+    job_name: "system-testing"
+    build_timeout: 3600
+
+  gitlab_ci:
+    enabled: false
+    pipeline_file: ".gitlab-ci.yml"
+
+# Métricas y KPIs
+metrics:
+  targets:
+    test_success_rate: 95
+    test_coverage: 80
+    performance_regression_threshold: 10  # percentage
+    security_scan_score: 90
+  tracking:
+    - test_duration
+    - failure_rate
+    - coverage_percentage
+    - performance_metrics
+    - security_vulnerabilities
+
+# Configuración de Ambiente
+environment:
+  test_data:
+    database_seeds: true
+    synthetic_data: true
+    privacy_level: "high"
+  cleanup:
+    after_tests: true
+    keep_reports: true
+    purge_logs_older_than_days: 7
+
+# Configuración Avanzada
+advanced:
+  profiling:
+    enabled: true
+    memory: true
+    cpu: true
+    profiling_output: "./reports/profiling"
+
+  flakiness_detection:
+    enabled: true
+    rerun_threshold: 2
+    quarantine_directory: "./quarantined"
+
+  smart_test_selection:
+    enabled: true
+    based_on_changes: true
+    historical_failure_analysis: true
