@@ -4,7 +4,6 @@ import com.banco.shibasito.dto.*;
 import com.banco.shibasito.exception.TransaccionException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -35,9 +34,9 @@ public class TransaccionController {
         summary = "Procesar transacción",
         description = "Permite procesar una nueva transacción bancaria (retiro, depósito, transferencia, etc.)"
     )
-    @ApiResponse(responseCode = "201", description = "Transacción procesada exitosamente")
-    @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos o fondos insuficientes")
-    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Transacción procesada exitosamente")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Datos de entrada inválidos o fondos insuficientes")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @PostMapping
     public ResponseEntity<ApiResponse<TransaccionResponse>> procesarTransaccion(
             @Parameter(description = "Datos de la transacción a procesar", required = true)
@@ -100,10 +99,10 @@ public class TransaccionController {
         summary = "Consultar transacción",
         description = "Permite consultar los detalles de una transacción específica mediante su ID"
     )
-    @ApiResponse(responseCode = "200", description = "Transacción consultada exitosamente")
-    @ApiResponse(responseCode = "400", description = "ID de transacción inválido")
-    @ApiResponse(responseCode = "404", description = "Transacción no encontrada")
-    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Transacción consultada exitosamente")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "ID de transacción inválido")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Transacción no encontrada")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<TransaccionResponse>> consultarTransaccion(
             @Parameter(description = "ID único de la transacción", example = "TXN-2025-0001", required = true)

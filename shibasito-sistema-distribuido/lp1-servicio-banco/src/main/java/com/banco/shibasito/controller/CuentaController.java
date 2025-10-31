@@ -4,7 +4,6 @@ import com.banco.shibasito.dto.*;
 import com.banco.shibasito.exception.CuentaException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -36,9 +35,9 @@ public class CuentaController {
         summary = "Consultar saldo de cuenta",
         description = "Permite consultar el saldo disponible de una cuenta bancaria mediante el DNI del titular"
     )
-    @ApiResponse(responseCode = "200", description = "Saldo consultado exitosamente")
-    @ApiResponse(responseCode = "400", description = "DNI inválido o cuenta no encontrada")
-    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Saldo consultado exitosamente")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "DNI inválido o cuenta no encontrada")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @GetMapping("/{dni}/saldo")
     public ResponseEntity<ApiResponse<SaldoResponse>> consultarSaldo(
             @Parameter(description = "Documento Nacional de Identidad del titular", example = "12345678", required = true)
@@ -81,9 +80,9 @@ public class CuentaController {
         summary = "Crear nueva cuenta",
         description = "Permite crear una nueva cuenta bancaria con saldo inicial"
     )
-    @ApiResponse(responseCode = "201", description = "Cuenta creada exitosamente")
-    @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos")
-    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Cuenta creada exitosamente")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Datos de entrada inválidos")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @PostMapping
     public ResponseEntity<ApiResponse<CuentaResponse>> crearCuenta(
             @Parameter(description = "Datos de la nueva cuenta", required = true)
@@ -133,9 +132,9 @@ public class CuentaController {
         summary = "Consultar historial de transacciones",
         description = "Permite consultar el historial completo de transacciones de una cuenta bancaria mediante el DNI del titular"
     )
-    @ApiResponse(responseCode = "200", description = "Historial consultado exitosamente")
-    @ApiResponse(responseCode = "400", description = "DNI inválido o cuenta no encontrada")
-    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Historial consultado exitosamente")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "DNI inválido o cuenta no encontrada")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @GetMapping("/{dni}/historial")
     public ResponseEntity<ApiResponse<List<HistorialTransaccionResponse>>> consultarHistorial(
             @Parameter(description = "Documento Nacional de Identidad del titular", example = "12345678", required = true)
@@ -166,23 +165,23 @@ public class CuentaController {
             
             // Agregar algunas transacciones de ejemplo
             historial.add(new HistorialTransaccionResponse(
-                "TXN-2025-0001",
+                1L,
                 LocalDateTime.now().minusDays(1),
                 "DEPOSITO",
                 new BigDecimal("500.00"),
                 new BigDecimal("2000.50"),
                 "Depósito en efectivo",
-                "SUCURSAL"
+                "COMPLETADA"
             ));
             
             historial.add(new HistorialTransaccionResponse(
-                "TXN-2025-0002",
+                2L,
                 LocalDateTime.now().minusHours(2),
                 "RETIRO",
                 new BigDecimal("-100.00"),
                 new BigDecimal("1500.50"),
                 "Retiro en ATM",
-                "ATM"
+                "COMPLETADA"
             ));
 
             logger.info("Historial consultado exitosamente para DNI: {}, total registros: {}", dni, historial.size());

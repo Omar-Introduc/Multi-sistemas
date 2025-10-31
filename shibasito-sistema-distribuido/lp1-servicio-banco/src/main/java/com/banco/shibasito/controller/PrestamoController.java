@@ -4,7 +4,6 @@ import com.banco.shibasito.dto.*;
 import com.banco.shibasito.exception.PrestamoException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -37,9 +36,9 @@ public class PrestamoController {
         summary = "Solicitar préstamo",
         description = "Permite solicitar un nuevo préstamo bancario con los datos proporcionados"
     )
-    @ApiResponse(responseCode = "201", description = "Préstamo solicitado exitosamente")
-    @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos o solicitud no aprobada")
-    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Préstamo solicitado exitosamente")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Datos de entrada inválidos o solicitud no aprobada")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @PostMapping("/solicitar")
     public ResponseEntity<ApiResponse<PrestamoResponse>> solicitarPrestamo(
             @Parameter(description = "Datos de la solicitud de préstamo", required = true)
@@ -105,10 +104,10 @@ public class PrestamoController {
         summary = "Consultar préstamos",
         description = "Permite consultar todos los préstamos asociados a un cliente mediante su DNI"
     )
-    @ApiResponse(responseCode = "200", description = "Préstamos consultados exitosamente")
-    @ApiResponse(responseCode = "400", description = "DNI inválido")
-    @ApiResponse(responseCode = "404", description = "No se encontraron préstamos para el DNI proporcionado")
-    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Préstamos consultados exitosamente")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "DNI inválido")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "No se encontraron préstamos para el DNI proporcionado")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Error interno del servidor")
     @GetMapping("/{dni}")
     public ResponseEntity<ApiResponse<List<PrestamoResponse>>> consultarPrestamos(
             @Parameter(description = "Documento Nacional de Identidad del cliente", example = "12345678", required = true)

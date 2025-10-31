@@ -67,4 +67,6 @@ public interface PrestamoRepository extends JpaRepository<Prestamo, Long> {
      */
     @Query("SELECT p FROM Prestamo p WHERE p.estado = 'PENDIENTE' ORDER BY p.fecha ASC")
     List<Prestamo> findPendientesOrderByFechaAsc();
+
+    List<Prestamo> findByClienteId(Long id);
 }

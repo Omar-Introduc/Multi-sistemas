@@ -302,9 +302,9 @@ public class ReniecResponseListener {
         if (response.getNombresCompletos() != null) {
             String[] nombres = response.getNombresCompletos().split(" ", 2);
             if (nombres.length > 0) {
-                cliente.setNombre(nombres[0]);
+                cliente.setNombres(nombres[0]);
                 if (nombres.length > 1) {
-                    cliente.setApellido(nombres[1]);
+                    cliente.setApellidos(nombres[1]);
                 }
             }
         }

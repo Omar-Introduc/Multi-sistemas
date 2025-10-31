@@ -11,8 +11,8 @@ import java.time.LocalDateTime;
 @Schema(description = "Transacción en el historial de cuenta")
 public class HistorialTransaccionResponse {
 
-    @Schema(description = "ID de la transacción", example = "TXN-2025-0001")
-    private String transaccionId;
+    @Schema(description = "ID de la transacción", example = "1")
+    private Long transaccionId;
 
     @Schema(description = "Fecha y hora de la transacción", example = "2025-10-30T08:44:05")
     private LocalDateTime fecha;
@@ -38,24 +38,24 @@ public class HistorialTransaccionResponse {
     // Constructores
     public HistorialTransaccionResponse() {}
 
-    public HistorialTransaccionResponse(String transaccionId, LocalDateTime fecha, 
-                                       String tipoTransaccion, BigDecimal monto, 
-                                       BigDecimal saldoPosterior, String descripcion) {
+    public HistorialTransaccionResponse(Long transaccionId, LocalDateTime fecha,
+                                       String tipoTransaccion, BigDecimal monto,
+                                       BigDecimal saldoPosterior, String descripcion, String estado) {
         this.transaccionId = transaccionId;
         this.fecha = fecha;
         this.tipoTransaccion = tipoTransaccion;
         this.monto = monto;
         this.saldoPosterior = saldoPosterior;
         this.descripcion = descripcion;
-        this.estado = "COMPLETADA";
+        this.estado = estado;
     }
 
     // Getters y Setters
-    public String getTransaccionId() {
+    public Long getTransaccionId() {
         return transaccionId;
     }
 
-    public void setTransaccionId(String transaccionId) {
+    public void setTransaccionId(Long transaccionId) {
         this.transaccionId = transaccionId;
     }
 
