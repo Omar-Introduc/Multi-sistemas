@@ -46,7 +46,7 @@ public class TransaccionService {
         try {
             Transaccion.TipoTransaccion tipo;
             try {
-                tipo = transaccionRequest.getTipoTransaccion();
+                tipo = Transaccion.TipoTransaccion.valueOf(transaccionRequest.getTipoTransaccion());
             } catch (IllegalArgumentException | NullPointerException e) {
                 return Response.error("Tipo de transacción no válido: " + transaccionRequest.getTipoTransaccion(), "TIPO_INVALIDO");
             }
