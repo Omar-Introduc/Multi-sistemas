@@ -2,7 +2,6 @@ package com.banco.shibasito.controller;
 
 import com.banco.shibasito.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +30,7 @@ public class BancoHealthController {
         summary = "Verificar salud del servicio",
         description = "Endpoint principal para verificar el estado y salud del microservicio bancario"
     )
-    @SwaggerApiResponse(responseCode = "200", description = "Servicio funcionando correctamente")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Servicio funcionando correctamente")
     @GetMapping("/health")
     public ResponseEntity<ApiResponse<Map<String, Object>>> health() {
         logger.debug("Verificando salud del servicio");
@@ -75,7 +74,7 @@ public class BancoHealthController {
         summary = "Estado simple del servicio",
         description = "Endpoint simplificado para verificación rápida de estado del servicio"
     )
-    @SwaggerApiResponse(responseCode = "200", description = "Servicio activo")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Servicio activo")
     @GetMapping("/status")
     public ResponseEntity<Map<String, String>> status() {
         logger.debug("Verificando estado simple del servicio");
@@ -95,7 +94,7 @@ public class BancoHealthController {
         summary = "Información del servicio",
         description = "Obtiene información detallada del microservicio bancario"
     )
-    @SwaggerApiResponse(responseCode = "200", description = "Información obtenida exitosamente")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Información obtenida exitosamente")
     @GetMapping("/info")
     public ResponseEntity<ApiResponse<Map<String, Object>>> info() {
         logger.debug("Obteniendo información del servicio");
@@ -135,7 +134,7 @@ public class BancoHealthController {
         summary = "Métricas básicas del sistema",
         description = "Obtiene métricas básicas de rendimiento del microservicio"
     )
-    @SwaggerApiResponse(responseCode = "200", description = "Métricas obtenidas exitosamente")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Métricas obtenidas exitosamente")
     @GetMapping("/metrics")
     public ResponseEntity<ApiResponse<Map<String, Object>>> metrics() {
         logger.debug("Obteniendo métricas del sistema");

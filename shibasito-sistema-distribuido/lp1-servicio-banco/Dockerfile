@@ -25,7 +25,7 @@ RUN mvn clean package -DskipTests && \
     mv target/*.jar app.jar
 
 # Etapa 2: Runtime stage
-FROM openjdk:17-jre-slim
+FROM openjdk:17-jdk-slim
 
 # Crear usuario no-root para seguridad
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser

@@ -18,6 +18,7 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 /**
@@ -73,12 +74,12 @@ public class TransaccionListener {
             TransaccionRequest transaccionRequest = new TransaccionRequest();
             transaccionRequest.setCuentaOrigen(request.getCuentaOrigen());
             transaccionRequest.setCuentaDestino(request.getCuentaDestino());
-            transaccionRequest.setMonto(request.getMonto());
-            transaccionRequest.setTipoTransaccion("TRANSFERENCIA");
+            transaccionRequest.setMonto(BigDecimal.valueOf(request.getMonto()));
+            transaccionRequest.setTipoTransaccion(Transaccion.TipoTransaccion.TRANSFERENCIA.name());
             transaccionRequest.setDescripcion(request.getDescripcion());
 
             // Procesar transferencia
-            Response<TransaccionResponse> response = transaccionService.procesarTransaccion(transaccionRequest);
+            Response<Transaccion> response = transaccionService.procesarTransaccion(transaccionRequest);
 
             if (response.isSuccess()) {
                 logger.info("Transferencia procesada exitosamente. RequestId: {}, TransaccionId: {}, Monto: {}", 
@@ -127,12 +128,12 @@ public class TransaccionListener {
             TransaccionRequest transaccionRequest = new TransaccionRequest();
             transaccionRequest.setCuentaOrigen("CAJERO");  // Cuenta del cajero/sistema
             transaccionRequest.setCuentaDestino(request.getCuentaDestino());
-            transaccionRequest.setMonto(request.getMonto());
-            transaccionRequest.setTipoTransaccion("DEPOSITO");
+            transaccionRequest.setMonto(BigDecimal.valueOf(request.getMonto()));
+            transaccionRequest.setTipoTransaccion(Transaccion.TipoTransaccion.DEPOSITO.name());
             transaccionRequest.setDescripcion(request.getDescripcion());
 
             // Procesar depósito
-            Response<TransaccionResponse> response = transaccionService.procesarTransaccion(transaccionRequest);
+            Response<Transaccion> response = transaccionService.procesarTransaccion(transaccionRequest);
 
             if (response.isSuccess()) {
                 logger.info("Depósito procesado exitosamente. RequestId: {}, TransaccionId: {}, Cuenta: {}, Monto: {}", 
@@ -181,12 +182,12 @@ public class TransaccionListener {
             TransaccionRequest transaccionRequest = new TransaccionRequest();
             transaccionRequest.setCuentaOrigen(request.getCuentaOrigen());
             transaccionRequest.setCuentaDestino("CAJERO");  // Cuenta del cajero/sistema
-            transaccionRequest.setMonto(request.getMonto());
-            transaccionRequest.setTipoTransaccion("RETIRO");
+            transaccionRequest.setMonto(BigDecimal.valueOf(request.getMonto()));
+            transaccionRequest.setTipoTransaccion(Transaccion.TipoTransaccion.RETIRO.name());
             transaccionRequest.setDescripcion(request.getDescripcion());
 
             // Procesar retiro
-            Response<TransaccionResponse> response = transaccionService.procesarTransaccion(transaccionRequest);
+            Response<Transaccion> response = transaccionService.procesarTransaccion(transaccionRequest);
 
             if (response.isSuccess()) {
                 logger.info("Retiro procesado exitosamente. RequestId: {}, TransaccionId: {}, Cuenta: {}, Monto: {}", 
@@ -298,11 +299,11 @@ public class TransaccionListener {
             reversoRequest.setCuentaOrigen(transaccionOriginal.getCuentaDestino());
             reversoRequest.setCuentaDestino(transaccionOriginal.getCuentaOrigen());
             reversoRequest.setMonto(transaccionOriginal.getMonto());
-            reversoRequest.setTipoTransaccion("REVERSION");
+            reversoRequest.setTipoTransaccion(Transaccion.TipoTransaccion.TRANSFERENCIA.name());
             reversoRequest.setDescripcion("Reversión de transacción: " + request.getMotivo());
 
             // Procesar reversión
-            Response<TransaccionResponse> response = transaccionService.procesarTransaccion(reversoRequest);
+            Response<Transaccion> response = transaccionService.procesarTransaccion(reversoRequest);
 
             if (response.isSuccess()) {
                 logger.info("Reversión procesada exitosamente. RequestId: {}, TransaccionOriginalId: {}, TransaccionReversaId: {}", 

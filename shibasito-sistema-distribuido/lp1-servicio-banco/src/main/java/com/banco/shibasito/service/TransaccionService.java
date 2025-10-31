@@ -39,57 +39,63 @@ public class TransaccionService {
      * @param tipo Tipo de transacción
      * @param monto Monto de la transacción
      * @param descripcion Descripción de la transacción
-     * @param cuentaDestino Número de cuenta destino (para transferencias)
+     * @param transaccionRequest
      * @return Response con el resultado de la transacción
      */
-    public Response<Transaccion> procesarTransaccion(String numeroCuenta, Transaccion.TipoTransaccion tipo, 
-                                                   BigDecimal monto, String descripcion, String cuentaDestino) {
+    public Response<Transaccion> procesarTransaccion(com.banco.shibasito.dto.TransaccionRequest transaccionRequest) {
         try {
+            Transaccion.TipoTransaccion tipo;
+            try {
+                tipo = transaccionRequest.getTipoTransaccion();
+            } catch (IllegalArgumentException | NullPointerException e) {
+                return Response.error("Tipo de transacción no válido: " + transaccionRequest.getTipoTransaccion(), "TIPO_INVALIDO");
+            }
+
             // Validaciones
-            Response<Transaccion> validacion = validarTransaccion(numeroCuenta, tipo, monto);
+            Response<Transaccion> validacion = validarTransaccion(transaccionRequest.getCuentaOrigen(), tipo, transaccionRequest.getMonto());
             if (!validacion.isSuccess()) {
                 return validacion;
             }
-            
+
             // Verificar que la cuenta existe
-            Optional<Cuenta> cuentaOpt = cuentaRepository.findByNumero(numeroCuenta);
+            Optional<Cuenta> cuentaOpt = cuentaRepository.findByNumero(transaccionRequest.getCuentaOrigen());
             if (!cuentaOpt.isPresent()) {
-                return Response.error("No se encontró cuenta con número: " + numeroCuenta, "CUENTA_NO_ENCONTRADA");
+                return Response.error("No se encontró cuenta con número: " + transaccionRequest.getCuentaOrigen(), "CUENTA_NO_ENCONTRADA");
             }
-            
+
             Cuenta cuenta = cuentaOpt.get();
-            
+
             // Verificar que la cuenta está activa
             if (cuenta.getEstado() != Cuenta.Estado.ACTIVA) {
                 return Response.error("No se puede procesar transacción en cuenta inactiva", "CUENTA_INACTIVA");
             }
-            
+
             Transaccion transaccion = null;
-            
+
             // Procesar según el tipo de transacción
             switch (tipo) {
                 case DEPOSITO:
-                    transaccion = procesarDeposito(cuenta, monto, descripcion);
+                    transaccion = procesarDeposito(cuenta, transaccionRequest.getMonto(), transaccionRequest.getDescripcion());
                     break;
                 case RETIRO:
-                    transaccion = procesarRetiro(cuenta, monto, descripcion);
+                    transaccion = procesarRetiro(cuenta, transaccionRequest.getMonto(), transaccionRequest.getDescripcion());
                     break;
                 case TRANSFERENCIA:
-                    transaccion = procesarTransferencia(cuenta, monto, descripcion, cuentaDestino);
+                    transaccion = procesarTransferencia(cuenta, transaccionRequest.getMonto(), transaccionRequest.getDescripcion(), transaccionRequest.getCuentaDestino());
                     break;
                 default:
-                    return Response.error("Tipo de transacción no soportado: " + tipo, "TIPO_NO_SOPORTADO");
+                    return Response.error("Tipo de transacción no soportado: " + transaccionRequest.getTipoTransaccion(), "TIPO_NO_SOPORTADO");
             }
-            
+
             if (transaccion != null) {
                 // Enviar mensaje a RabbitMQ
                 rabbitMQService.enviarEventoTransaccionProcesada(transaccion);
-                
+
                 return Response.success("Transacción procesada exitosamente", transaccion);
             } else {
                 return Response.error("No se pudo procesar la transacción", "TRANSACCION_FALLIDA");
             }
-            
+
         } catch (Exception e) {
             return Response.error("Error al procesar transacción: " + e.getMessage(), "ERROR_INTERNO");
         }
@@ -388,5 +394,19 @@ public class TransaccionService {
         }
         
         return Response.success("Validación exitosa");
+    }
+
+    public Response<List<Transaccion>> obtenerHistorialTransacciones(Long id, LocalDateTime startDate, LocalDateTime endDate) {
+        Optional<Cuenta> cuenta = cuentaRepository.findById(id);
+        if (cuenta.isPresent()) {
+            List<Transaccion> transacciones = transaccionRepository.findByCuentaAndFechaBetween(cuenta.get(), startDate, endDate);
+            return Response.success("Historial de transacciones obtenido exitosamente", transacciones);
+        }
+        return Response.error("Cuenta no encontrada", null);
+    }
+
+    public Response<Transaccion> obtenerTransaccionPorId(Long id) {
+        Optional<Transaccion> transaccion = transaccionRepository.findById(id);
+        return transaccion.map(value -> Response.success("Transacción encontrada", value)).orElseGet(() -> Response.error("Transacción no encontrada", null));
     }
 }

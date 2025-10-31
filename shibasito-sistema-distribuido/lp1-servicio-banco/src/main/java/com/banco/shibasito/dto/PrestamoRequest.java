@@ -42,6 +42,12 @@ public class PrestamoRequest {
     @Schema(description = "Lugar de trabajo del solicitante", example = "Empresa ABC S.A.C.")
     private String lugarTrabajo;
 
+    @Schema(description = "ID del cliente", example = "1")
+    private Long clienteId;
+
+    @Schema(description = "Tasa de interés", example = "12.5")
+    private Double tasaInteres;
+
     // Constructores
     public PrestamoRequest() {}
 
@@ -107,5 +113,21 @@ public class PrestamoRequest {
 
     public void setLugarTrabajo(String lugarTrabajo) {
         this.lugarTrabajo = lugarTrabajo;
+    }
+
+    public Long getClienteId() {
+        return clienteId;
+    }
+
+    public void setClienteId(Long clienteId) {
+        this.clienteId = clienteId;
+    }
+
+    public Double getTasaInteres() {
+        return tasaInteres;
+    }
+
+    public void setTasaInteres(Double tasaInteres) {
+        this.tasaInteres = tasaInteres;
     }
 }

@@ -145,7 +145,7 @@ public class CuentaService {
             // Crear registro de transacción
             Transaccion transaccion = new Transaccion();
             transaccion.setCuenta(cuenta);
-            transaccion.setTipo(Transaccion.Tipo.DEPOSITO);
+            transaccion.setTipo(Transaccion.TipoTransaccion.DEPOSITO);
             transaccion.setMonto(monto);
             transaccion.setDescripcion(descripcion != null ? descripcion : "Depósito en cuenta");
             transaccion.setFecha(LocalDateTime.now());
@@ -200,7 +200,7 @@ public class CuentaService {
             // Crear registro de transacción
             Transaccion transaccion = new Transaccion();
             transaccion.setCuenta(cuenta);
-            transaccion.setTipo(Transaccion.Tipo.RETIRO);
+            transaccion.setTipo(Transaccion.TipoTransaccion.RETIRO);
             transaccion.setMonto(monto);
             transaccion.setDescripcion(descripcion != null ? descripcion : "Retiro de cuenta");
             transaccion.setFecha(LocalDateTime.now());

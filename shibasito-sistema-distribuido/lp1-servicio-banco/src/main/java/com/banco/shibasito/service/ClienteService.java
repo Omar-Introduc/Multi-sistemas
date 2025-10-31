@@ -61,7 +61,7 @@ public class ClienteService {
      * @param dni DNI del cliente a buscar
      * @return Response con el cliente encontrado o mensaje de error
      */
-    public Response<Cliente> buscarPorDni(String dni) {
+    public Response<Cliente> buscarClientePorDni(String dni) {
         try {
             if (dni == null || dni.trim().isEmpty()) {
                 return Response.error("El DNI no puede estar vacío", "DNI_INVALIDO");
@@ -75,6 +75,30 @@ public class ClienteService {
                 return Response.error("No se encontró cliente con DNI: " + dni, "CLIENTE_NO_ENCONTRADO");
             }
             
+        } catch (Exception e) {
+            return Response.error("Error al buscar cliente: " + e.getMessage(), "ERROR_INTERNO");
+        }
+    }
+
+    /**
+     * Obtiene un cliente por su ID
+     * @param id ID del cliente a buscar
+     * @return Response con el cliente encontrado o mensaje de error
+     */
+    public Response<Cliente> obtenerClientePorId(Long id) {
+        try {
+            if (id == null) {
+                return Response.error("El ID no puede ser nulo", "ID_INVALIDO");
+            }
+
+            Optional<Cliente> cliente = clienteRepository.findById(id);
+
+            if (cliente.isPresent()) {
+                return Response.success("Cliente encontrado", cliente.get());
+            } else {
+                return Response.error("No se encontró cliente con ID: " + id, "CLIENTE_NO_ENCONTRADO");
+            }
+
         } catch (Exception e) {
             return Response.error("Error al buscar cliente: " + e.getMessage(), "ERROR_INTERNO");
         }
@@ -118,20 +142,19 @@ public class ClienteService {
 
     /**
      * Actualiza los datos de un cliente
-     * @param dni DNI del cliente a actualizar
      * @param clienteActualizado Datos actualizados del cliente
      * @return Response con el cliente actualizado
      */
-    public Response<Cliente> actualizarCliente(String dni, Cliente clienteActualizado) {
+    public Response<Cliente> actualizarCliente(Cliente clienteActualizado) {
         try {
-            if (dni == null || dni.trim().isEmpty()) {
-                return Response.error("El DNI no puede estar vacío", "DNI_INVALIDO");
+            if (clienteActualizado == null || clienteActualizado.getId() == null) {
+                return Response.error("Los datos del cliente y su ID no pueden ser nulos", "CLIENTE_INVALIDO");
             }
             
-            Optional<Cliente> clienteExistente = clienteRepository.findByDni(dni);
+            Optional<Cliente> clienteExistente = clienteRepository.findById(clienteActualizado.getId());
             
             if (!clienteExistente.isPresent()) {
-                return Response.error("No se encontró cliente con DNI: " + dni, "CLIENTE_NO_ENCONTRADO");
+                return Response.error("No se encontró cliente con ID: " + clienteActualizado.getId(), "CLIENTE_NO_ENCONTRADO");
             }
             
             // Actualizar datos

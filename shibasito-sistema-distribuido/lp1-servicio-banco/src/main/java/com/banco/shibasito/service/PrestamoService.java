@@ -34,24 +34,21 @@ public class PrestamoService {
     
     /**
      * Solicita un nuevo préstamo
-     * @param dniCliente DNI del cliente solicitante
-     * @param monto Monto solicitado
-     * @param plazoMeses Plazo en meses
-     * @param motivo Motivo de la solicitud
+     * @param prestamoRequest
      * @return Response con el préstamo solicitado o mensaje de error
      */
-    public Response<Prestamo> solicitarPrestamo(String dniCliente, BigDecimal monto, int plazoMeses, String motivo) {
+    public Response<Prestamo> solicitarPrestamo(com.banco.shibasito.dto.PrestamoRequest prestamoRequest) {
         try {
             // Validaciones
-            Response<Prestamo> validacion = validarSolicitudPrestamo(dniCliente, monto, plazoMeses, motivo);
+            Response<Prestamo> validacion = validarSolicitudPrestamo(prestamoRequest.getDni(), prestamoRequest.getMonto(), prestamoRequest.getPlazoMeses(), prestamoRequest.getProposito());
             if (!validacion.isSuccess()) {
                 return validacion;
             }
             
             // Verificar que el cliente existe
-            Optional<Cliente> clienteOpt = clienteRepository.findByDni(dniCliente);
+            Optional<Cliente> clienteOpt = clienteRepository.findByDni(prestamoRequest.getDni());
             if (!clienteOpt.isPresent()) {
-                return Response.error("No se encontró cliente con DNI: " + dniCliente, "CLIENTE_NO_ENCONTRADO");
+                return Response.error("No se encontró cliente con DNI: " + prestamoRequest.getDni(), "CLIENTE_NO_ENCONTRADO");
             }
             
             Cliente cliente = clienteOpt.get();
@@ -62,28 +59,28 @@ public class PrestamoService {
             }
             
             // Verificar si el cliente tiene préstamos pendientes
-            List<Prestamo> prestamosPendientes = prestamoRepository.findByClienteDniAndEstado(dniCliente, "PENDIENTE");
+            List<Prestamo> prestamosPendientes = prestamoRepository.findByClienteDniAndEstado(prestamoRequest.getDni(), Prestamo.Estado.PENDIENTE);
             if (!prestamosPendientes.isEmpty()) {
                 return Response.error("El cliente ya tiene una solicitud de préstamo pendiente", "SOLICITUD_PENDIENTE");
             }
             
             // Verificar capacidad de pago del cliente (simplificado)
-            Response<BigDecimal> capacidadPago = evaluarCapacidadPago(cliente, monto, plazoMeses);
+            Response<BigDecimal> capacidadPago = evaluarCapacidadPago(cliente, prestamoRequest.getMonto(), prestamoRequest.getPlazoMeses());
             if (!capacidadPago.isSuccess()) {
-                return capacidadPago;
+                return Response.error(capacidadPago.getMessage(), null);
             }
             
             // Calcular tasa de interés según monto y plazo
-            BigDecimal tasaInteres = calcularTasaInteres(monto, plazoMeses);
+            BigDecimal tasaInteres = calcularTasaInteres(prestamoRequest.getMonto(), prestamoRequest.getPlazoMeses());
             
             // Crear préstamo
             Prestamo prestamo = new Prestamo();
             prestamo.setCliente(cliente);
-            prestamo.setMonto(monto);
-            prestamo.setPlazoMeses(plazoMeses);
-            prestamo.setMotivo(motivo);
+            prestamo.setMonto(prestamoRequest.getMonto());
+            prestamo.setPlazoMeses(prestamoRequest.getPlazoMeses());
+            prestamo.setMotivo(prestamoRequest.getProposito());
             prestamo.setTasaInteres(tasaInteres);
-            prestamo.setEstado("PENDIENTE");
+            prestamo.setEstado(Prestamo.Estado.PENDIENTE);
             prestamo.setFecha(LocalDate.now());
             prestamo.setCuotasPagadas(0);
             
@@ -118,12 +115,12 @@ public class PrestamoService {
             
             Prestamo prestamo = prestamoOpt.get();
             
-            if (!"PENDIENTE".equals(prestamo.getEstado())) {
+            if (prestamo.getEstado() != Prestamo.Estado.PENDIENTE) {
                 return Response.error("Solo se pueden evaluar solicitudes pendientes", "ESTADO_NO_EVALUABLE");
             }
             
             // Cambiar estado a EVALUANDO
-            prestamo.setEstado("EVALUANDO");
+            prestamo.setEstado(Prestamo.Estado.EVALUANDO);
             Prestamo prestamoEvaluado = prestamoRepository.save(prestamo);
             
             // Realizar evaluación crediticia (lógica simplificada)
@@ -164,7 +161,7 @@ public class PrestamoService {
             
             Prestamo prestamo = prestamoOpt.get();
             
-            if (!"PENDIENTE".equals(prestamo.getEstado()) && !"EVALUANDO".equals(prestamo.getEstado())) {
+            if (prestamo.getEstado() != Prestamo.Estado.PENDIENTE && prestamo.getEstado() != Prestamo.Estado.EVALUANDO) {
                 return Response.error("Solo se pueden aprobar solicitudes pendientes o en evaluación", "ESTADO_NO_APROBABLE");
             }
             
@@ -175,7 +172,7 @@ public class PrestamoService {
             
             // Aprobar préstamo
             prestamo.setMontoAprobado(montoAprobado);
-            prestamo.setEstado("APROBADO");
+            prestamo.setEstado(Prestamo.Estado.APROBADO);
             prestamo.setFechaAprobacion(LocalDate.now());
             
             // Calcular fecha de vencimiento
@@ -221,12 +218,12 @@ public class PrestamoService {
             
             Prestamo prestamo = prestamoOpt.get();
             
-            if (!"PENDIENTE".equals(prestamo.getEstado()) && !"EVALUANDO".equals(prestamo.getEstado())) {
+            if (prestamo.getEstado() != Prestamo.Estado.PENDIENTE && prestamo.getEstado() != Prestamo.Estado.EVALUANDO) {
                 return Response.error("Solo se pueden rechazar solicitudes pendientes o en evaluación", "ESTADO_NO_RECHAZABLE");
             }
             
             // Rechazar préstamo
-            prestamo.setEstado("RECHAZADO");
+            prestamo.setEstado(Prestamo.Estado.RECHAZADO);
             prestamo.setMotivoRechazo(motivo);
             
             prestamoRepository.save(prestamo);
@@ -266,9 +263,9 @@ public class PrestamoService {
      * @param estado Estado de los préstamos
      * @return Response con la lista de préstamos
      */
-    public Response<List<Prestamo>> listarPrestamosPorEstado(String estado) {
+    public Response<List<Prestamo>> listarPrestamosPorEstado(Prestamo.Estado estado) {
         try {
-            if (estado == null || estado.trim().isEmpty()) {
+            if (estado == null) {
                 return Response.error("El estado es obligatorio", "ESTADO_REQUERIDO");
             }
             
@@ -431,5 +428,37 @@ public class PrestamoService {
         }
         
         return Response.success("Validación exitosa");
+    }
+
+    public Response<Prestamo> obtenerPrestamoPorId(Long id) {
+        Optional<Prestamo> prestamo = prestamoRepository.findById(id);
+        return prestamo.map(value -> Response.success("Prestamo encontrado", value)).orElseGet(() -> Response.error("Prestamo no encontrado", null));
+    }
+
+    public Response<Prestamo> evaluarPrestamo(Long id, double v, String approved, String s) {
+        Optional<Prestamo> prestamo = prestamoRepository.findById(id);
+        if (prestamo.isPresent()) {
+            Prestamo p = prestamo.get();
+            p.setEstado(Prestamo.Estado.valueOf(approved));
+            prestamoRepository.save(p);
+            return Response.success("Prestamo evaluado", p);
+        }
+        return Response.error("Prestamo no encontrado", null);
+    }
+
+    public Response<Prestamo> procesarAmortizacion(Long id, Double aDouble, java.time.LocalDateTime now) {
+        Optional<Prestamo> prestamo = prestamoRepository.findById(id);
+        if (prestamo.isPresent()) {
+            Prestamo p = prestamo.get();
+            p.setSaldoPendiente(p.getSaldoPendiente().subtract(BigDecimal.valueOf(aDouble)));
+            prestamoRepository.save(p);
+            return Response.success("Amortizacion procesada", p);
+        }
+        return Response.error("Prestamo no encontrado", null);
+    }
+
+    public Response<List<Prestamo>> obtenerPrestamosPorCliente(Long id) {
+        List<Prestamo> prestamos = prestamoRepository.findByClienteId(id);
+        return Response.success("Prestamos encontrados", prestamos);
     }
 }

@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.listener.exception.ListenerExecutionFailedException;
+import org.springframework.amqp.rabbit.listener.exception.ListenerExecutionFailedException;
 import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.Header;
@@ -87,14 +88,14 @@ public class PrestamoListener {
             // Crear objeto PrestamoRequest
             PrestamoRequest prestamoRequest = new PrestamoRequest();
             prestamoRequest.setClienteId(request.getClienteId());
-            prestamoRequest.setMonto(request.getMonto());
+            prestamoRequest.setMonto(BigDecimal.valueOf(request.getMonto()));
             prestamoRequest.setPlazoMeses(request.getPlazoMeses());
             prestamoRequest.setTipoPrestamo(request.getTipoPrestamo());
             prestamoRequest.setTasaInteres(request.getTasaInteres());
             prestamoRequest.setProposito(request.getProposito());
 
             // Procesar solicitud de préstamo
-            Response<PrestamoResponse> response = prestamoService.solicitarPrestamo(prestamoRequest);
+            Response<Prestamo> response = prestamoService.solicitarPrestamo(prestamoRequest);
 
             if (response.isSuccess()) {
                 logger.info("Solicitud de préstamo procesada exitosamente. RequestId: {}, PrestamoId: {}, ClienteId: {}, Monto: {}, Estado: {}", 
@@ -157,9 +158,9 @@ public class PrestamoListener {
             // Actualizar estado del préstamo basado en la evaluación
             String nuevoEstado = evaluacion.isAprobado() ? "APROBADO" : "RECHAZADO";
             
-            Response<PrestamoResponse> response = prestamoService.evaluarPrestamo(
-                    request.getPrestamoId(), 
-                    evaluacion.getPuntuacionCrediticia(), 
+            Response<Prestamo> response = prestamoService.evaluarPrestamo(
+                    request.getPrestamoId(),
+                    evaluacion.getPuntuacionCrediticia(),
                     nuevoEstado,
                     evaluacion.getObservaciones()
             );
@@ -309,7 +310,7 @@ public class PrestamoListener {
 
         // Factores de evaluación simplificados
         if (prestamo.getMonto() != null && request.getIngresosMensuales() != null) {
-            double ratioDeudaIngreso = prestamo.getMonto() / request.getIngresosMensuales();
+            double ratioDeudaIngreso = prestamo.getMonto().doubleValue() / request.getIngresosMensuales();
             if (ratioDeudaIngreso <= 0.3) {
                 puntuacion += 40;
             } else if (ratioDeudaIngreso <= 0.5) {

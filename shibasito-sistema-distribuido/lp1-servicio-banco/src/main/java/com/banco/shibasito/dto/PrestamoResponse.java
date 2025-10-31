@@ -11,6 +11,9 @@ import java.time.LocalDate;
 @Schema(description = "Información de préstamo bancario")
 public class PrestamoResponse {
 
+    @Schema(description = "ID único del préstamo", example = "1")
+    private Long id;
+
     @Schema(description = "ID único del préstamo", example = "PRST-2025-0001")
     private String prestamoId;
 
@@ -68,6 +71,14 @@ public class PrestamoResponse {
     }
 
     // Getters y Setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public String getPrestamoId() {
         return prestamoId;
     }
