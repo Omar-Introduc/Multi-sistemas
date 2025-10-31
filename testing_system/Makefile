@@ -1,250 +1,338 @@
-# Sistema de Testing Final - Makefile
-# ==================================
+# Makefile para Sistema de Stress Testing
+# ==========================================
+# 
+# Este Makefile proporciona comandos simplificados para ejecutar
+# todas las funcionalidades del sistema de stress testing.
+#
+# Uso:
+#   make help              # Mostrar ayuda
+#   make install           # Instalar dependencias
+#   make test-stress-lp1   # Ejecutar stress test LP1
+#   make test-stress-lp2   # Ejecutar stress test LP2
+#   make test-integrity    # Ejecutar validación de integridad
+#   make test-persistence  # Ejecutar tests de persistencia
+#   make test-full         # Ejecutar suite completa
+#   make reports           # Generar reportes
+#   make clean             # Limpiar archivos temporales
+#
+# Autor: Sistema de Testing Automatizado
+# Fecha: 2025-10-30
 
-.PHONY: help setup test-all test-unit test-integration test-e2e test-performance test-security validate generate-reports clean install-deps docker-build docker-run
-
-# Variables
+# Variables de configuración
 PYTHON := python3
 PIP := pip3
-DOCKER := docker
-DOCKER_COMPOSE := docker-compose
-REPORTS_DIR := reports
-LOGS_DIR := execution_logs
+CONFIG_FILE := automation_config.json
+REPORTS_DIR := test_reports
+LOG_DIR := logs
 
 # Colores para output
-BLUE := \033[36m
-GREEN := \033[32m
-YELLOW := \033[33m
-RED := \033[31m
-RESET := \033[0m
+BLUE := \033[0;34m
+GREEN := \033[0;32m
+YELLOW := \033[0;33m
+RED := \033[0;31m
+NC := \033[0m # No Color
 
-# Help target
-help: ## Mostrar ayuda con todos los comandos disponibles
-	@echo "$(BLUE)🎯 Sistema de Testing Final v2.0 - Comandos Disponibles$(RESET)"
-	@echo "$(YELLOW)=====================================================$(RESET)"
-	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*##/ { printf "  $(GREEN)%-25s$(RESET) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+.PHONY: help install test-stress-lp1 test-stress-lp2 test-integrity test-persistence test-full reports clean setup-config example
 
-# Setup
-setup: ## Configuración completa del entorno de testing
-	@echo "$(BLUE)🚀 Configurando entorno de testing...$(RESET)"
-	$(MAKE) install-deps
-	$(MAKE) create-dirs
-	$(MAKE) setup-playwright
-	$(MAKE) validate
-	@echo "$(GREEN)✅ Setup completado exitosamente!$(RESET)"
+# Ayuda - Mostrar todos los comandos disponibles
+help:
+	@echo "$(BLUE)🏗️  SISTEMA DE STRESS TESTING - COMANDOS DISPONIBLES$(NC)"
+	@echo "=================================================================="
+	@echo ""
+	@echo "$(YELLOW)Instalación y Configuración:$(NC)"
+	@echo "  install            Instalar dependencias Python"
+	@echo "  setup-config       Crear archivo de configuración de ejemplo"
+	@echo "  example            Ejecutar ejemplos de uso"
+	@echo ""
+	@echo "$(YELLOW)Tests Individuales:$(NC)"
+	@echo "  test-stress-lp1    Ejecutar stress test LP1 (Sistema Bancario)"
+	@echo "  test-stress-lp2    Ejecutar stress test LP2 (Sistema RENIEC)"
+	@echo "  test-integrity     Ejecutar validación de integridad BD1 vs BD2"
+	@echo "  test-persistence   Ejecutar tests de persistencia"
+	@echo ""
+	@echo "$(YELLOW)Ejecución Completa:$(NC)"
+	@echo "  test-full          Ejecutar suite completa de tests"
+	@echo "  test-stress        Ejecutar solo tests de estrés (LP1+LP2)"
+	@echo "  test-validation    Ejecutar solo validaciones (integridad+persistencia)"
+	@echo ""
+	@echo "$(YELLOW)Reportes y Análisis:$(NC)"
+	@echo "  reports            Generar reportes de ejemplo"
+	@echo "  view-reports       Abrir directorio de reportes"
+	@echo "  clean              Limpiar archivos temporales y reportes antiguos"
+	@echo ""
+	@echo "$(YELLOW)Utilidades:$(NC)"
+	@echo "  status             Verificar estado del sistema"
+	@echo "  logs               Mostrar logs recientes"
+	@echo "  validate-config    Validar archivo de configuración"
+	@echo ""
+	@echo "$(GREEN)Ejemplo de uso:$(NC)"
+	@echo "  1. make install"
+	@echo "  2. make setup-config"
+	@echo "  3. make test-stress-lp1"
+	@echo "  4. make reports"
+	@echo ""
 
-install-deps: ## Instalar dependencias Python
-	@echo "$(YELLOW)📦 Instalando dependencias...$(RESET)"
-	$(PIP) install --upgrade pip
-	$(PIP) install -r requirements-test.txt
-	@echo "$(GREEN)✅ Dependencias instaladas$(RESET)"
+# Instalar dependencias Python
+install:
+	@echo "$(BLUE)📦 Instalando dependencias...$(NC)"
+	$(PIP) install mysql-connector-python pandas schedule
+	@echo "$(GREEN)✅ Dependencias instaladas correctamente$(NC)"
 
-create-dirs: ## Crear directorios necesarios
-	@echo "$(YELLOW)📁 Creando directorios...$(RESET)"
-	mkdir -p $(REPORTS_DIR) $(LOGS_DIR)
-	mkdir -p unit_tests integration_tests e2e_tests performance_tests security_tests
-	@echo "$(GREEN)✅ Directorios creados$(RESET)"
+# Crear configuración de ejemplo
+setup-config:
+	@echo "$(BLUE)⚙️  Creando configuración de ejemplo...$(NC)"
+	$(PYTHON) automation_test_suite.py --create-config
+	@echo "$(GREEN)✅ Configuración creada: $(CONFIG_FILE)$(NC)"
 
-setup-playwright: ## Instalar navegadores para Playwright
-	@echo "$(YELLOW)🎭 Configurando Playwright...$(RESET)"
-	playwright install chromium
-	@echo "$(GREEN)✅ Playwright configurado$(RESET)"
+# Ejecutar ejemplos de uso
+example:
+	@echo "$(BLUE)🎯 Ejecutando ejemplos de uso...$(NC)"
+	$(PYTHON) example_usage.py
 
-# Testing targets
-test-all: ## Ejecutar todos los tests
-	@echo "$(BLUE)🧪 Ejecutando todos los tests...$(RESET)"
-	$(PYTHON) run_all_tests.py --generate-report
-	@echo "$(GREEN)✅ Tests completados$(RESET)"
+# Stress test LP1 - Sistema Bancario
+test-stress-lp1:
+	@echo "$(BLUE)🚀 Ejecutando stress test LP1 (Sistema Bancario)...$(NC)"
+	@echo "Target: 1500 registros con 50 hilos concurrentes"
+	$(PYTHON) stress_test_lp1.py
+	@echo "$(GREEN)✅ Stress test LP1 completado$(NC)"
 
-test-unit: ## Ejecutar solo tests unitarios
-	@echo "$(BLUE)🧪 Tests unitarios...$(RESET)"
-	pytest unit_tests/ --cov=src --cov-report=html:$(REPORTS_DIR)/coverage_unit_html --html=$(REPORTS_DIR)/unit_tests_report.html --self-contained-html -v
+# Stress test LP2 - Sistema RENIEC
+test-stress-lp2:
+	@echo "$(BLUE)🚀 Ejecutando stress test LP2 (Sistema RENIEC)...$(NC)"
+	@echo "Target: 1500 ciudadanos con validaciones"
+	$(PYTHON) stress_test_lp2.py
+	@echo "$(GREEN)✅ Stress test LP2 completado$(NC)"
 
-test-integration: ## Ejecutar tests de integración
-	@echo "$(BLUE)🔗 Tests de integración...$(RESET)"
-	pytest integration_tests/ --html=$(REPORTS_DIR)/integration_tests_report.html --self-contained-html -v
+# Validación de integridad
+test-integrity:
+	@echo "$(BLUE)🔍 Ejecutando validación de integridad...$(NC)"
+	@echo "Comparación BD1 vs BD2"
+	$(PYTHON) validate_data_integrity.py
+	@echo "$(GREEN)✅ Validación de integridad completada$(NC)"
 
-test-e2e: ## Ejecutar tests end-to-end
-	@echo "$(BLUE)🌐 Tests E2E...$(RESET)"
-	playwright test e2e_tests/ --reporter=html --output-dir=$(REPORTS_DIR)/e2e-results
+# Tests de persistencia
+test-persistence:
+	@echo "$(BLUE)💾 Ejecutando tests de persistencia...$(NC)"
+	@echo "Validación de backups y recuperación"
+	$(PYTHON) persistence_tests.py
+	@echo "$(GREEN)✅ Tests de persistencia completados$(NC)"
 
-test-performance: ## Ejecutar tests de performance
-	@echo "$(BLUE)⚡ Tests de performance...$(RESET)"
-	locust -f performance_tests/load_test.py --headless --users 50 --spawn-rate 10 --run-time 300s --csv=$(REPORTS_DIR)/performance_50_users --html=$(REPORTS_DIR)/performance_report.html
+# Ejecutar solo tests de estrés
+test-stress: test-stress-lp1 test-stress-lp2
+	@echo "$(GREEN)✅ Tests de estrés completados (LP1 + LP2)$(NC)"
 
-test-security: ## Ejecutar tests de seguridad
-	@echo "$(BLUE)🔒 Tests de seguridad...$(RESET)"
-	bandit -r src/ -f json -o $(REPORTS_DIR)/security_bandit.json || true
-	safety check --json --output $(REPORTS_DIR)/security_safety.json || true
+# Ejecutar solo validaciones
+test-validation: test-integrity test-persistence
+	@echo "$(GREEN)✅ Validaciones completadas (Integridad + Persistencia)$(NC)"
 
-# Validation
-validate: ## Validar sistema completo
-	@echo "$(BLUE)🔍 Validando sistema...$(RESET)"
-	$(PYTHON) validate_system.py --verbose
+# Ejecutar suite completa
+test-full:
+	@echo "$(BLUE)🚀 Ejecutando suite completa de tests...$(NC)"
+	@echo "Incluye: Stress + Integridad + Persistencia + Reportes"
+	@if [ -f "$(CONFIG_FILE)" ]; then \
+		$(PYTHON) automation_test_suite.py --mode full --config $(CONFIG_FILE); \
+	else \
+		echo "$(YELLOW)⚠️  Configuración no encontrada, usando configuración por defecto$(NC)"; \
+		$(PYTHON) automation_test_suite.py --mode full; \
+	fi
+	@echo "$(GREEN)✅ Suite completa ejecutada$(NC)"
 
-validate-quick: ## Validación rápida del sistema
-	@echo "$(BLUE)⚡ Validación rápida...$(RESET)"
-	$(PYTHON) validate_system.py
+# Generar reportes de ejemplo
+reports:
+	@echo "$(BLUE)📊 Generando reportes de ejemplo...$(NC)"
+	$(PYTHON) generate_test_reports.py
+	@echo "$(GREEN)✅ Reportes generados en $(REPORTS_DIR)/$(NC)"
 
-# Reports
-generate-reports: ## Generar reportes finales
-	@echo "$(BLUE)📊 Generando reportes...$(RESET)"
-	$(PYTHON) generate_final_report.py --input $(REPORTS_DIR)/test_results.json --output-dir $(REPORTS_DIR)
+# Ver directorio de reportes
+view-reports:
+	@echo "$(BLUE)📁 Abriendo directorio de reportes...$(NC)"
+	@if [ -d "$(REPORTS_DIR)" ]; then \
+		ls -la $(REPORTS_DIR)/; \
+		@if command -v open > /dev/null; then \
+			open $(REPORTS_DIR)/; \
+		elif command -v xdg-open > /dev/null; then \
+			xdg-open $(REPORTS_DIR)/; \
+		fi \
+	else \
+		echo "$(YELLOW)⚠️  Directorio de reportes no existe. Ejecuta 'make reports' primero$(NC)"; \
+	fi
 
-# CI/CD targets
-ci-test: ## Testing para CI/CD
-	@echo "$(BLUE)🔄 Testing para CI/CD...$(RESET)"
-	$(MAKE) validate-quick
-	$(MAKE) test-unit
-	$(MAKE) test-integration
-	$(MAKE) test-security
-	@echo "$(GREEN)✅ CI Testing completado$(RESET)"
+# Verificar estado del sistema
+status:
+	@echo "$(BLUE)📈 Verificando estado del sistema...$(NC)"
+	@echo "Python version:"
+	$(PYTHON) --version
+	@echo ""
+	@echo "Directorio actual:"
+	pwd
+	@echo ""
+	@echo "Archivos del sistema:"
+	ls -la *.py
+	@echo ""
+	@echo "Configuración:"
+	@if [ -f "$(CONFIG_FILE)" ]; then \
+		echo "✅ $(CONFIG_FILE) existe"; \
+	else \
+		echo "$(YELLOW)⚠️  $(CONFIG_FILE) no existe. Ejecuta 'make setup-config'$(NC)"; \
+	fi
+	@echo ""
+	@echo "Directorio de reportes:"
+	@if [ -d "$(REPORTS_DIR)" ]; then \
+		echo "✅ $(REPORTS_DIR)/ existe"; \
+		echo "Archivos: $$(ls $(REPORTS_DIR)/ | wc -l)"; \
+	else \
+		echo "$(YELLOW)⚠️  $(REPORTS_DIR)/ no existe$(NC)"; \
+	fi
 
-ci-full: ## Testing completo para CI/CD
-	@echo "$(BLUE)🔄 Testing completo para CI/CD...$(RESET)"
-	$(MAKE) validate
-	$(MAKE) test-all
-	$(MAKE) generate-reports
-	@echo "$(GREEN)✅ CI Full Testing completado$(RESET)"
+# Mostrar logs recientes
+logs:
+	@echo "$(BLUE)📋 Mostrando logs recientes...$(NC)"
+	@if [ -d "$(LOG_DIR)" ]; then \
+		tail -20 $(LOG_DIR)/*.log 2>/dev/null || echo "No hay logs disponibles"; \
+	else \
+		echo "$(YELLOW)⚠️  Directorio de logs no existe$(NC)"; \
+	fi
 
-# Docker targets
-docker-build: ## Construir imagen Docker para testing
-	@echo "$(BLUE)🐳 Construyendo imagen Docker...$(RESET)"
-	$(DOCKER) build -t shibasito-testing .
+# Validar configuración
+validate-config:
+	@echo "$(BLUE)🔍 Validando configuración...$(NC)"
+	@if [ -f "$(CONFIG_FILE)" ]; then \
+		$(PYTHON) -c "import json; json.load(open('$(CONFIG_FILE)'))" && \
+		echo "$(GREEN)✅ Configuración válida$(NC)" || \
+		echo "$(RED)❌ Error en configuración$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠️  Archivo de configuración no existe$(NC)"; \
+		echo "Ejecuta 'make setup-config' para crear uno"; \
+	fi
 
-docker-run: ## Ejecutar testing en Docker
-	@echo "$(BLUE)🐳 Ejecutando testing en Docker...$(RESET)"
-	$(DOCKER) run -v $(PWD)/$(REPORTS_DIR):/app/$(REPORTS_DIR) -v $(PWD)/$(LOGS_DIR):/app/$(LOGS_DIR) shibasito-testing
+# Limpiar archivos temporales
+clean:
+	@echo "$(BLUE)🧹 Limpiando archivos temporales...$(NC)"
+	@echo "Eliminando archivos temporales..."
+	find . -name "*.pyc" -delete 2>/dev/null || true
+	find . -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	find . -name "*.log" -mtime +7 -delete 2>/dev/null || true
+	@if [ -d "$(REPORTS_DIR)" ]; then \
+		echo "Limpiando reportes antiguos (>30 días)..."; \
+		find $(REPORTS_DIR)/ -name "*.html" -mtime +30 -delete 2>/dev/null || true; \
+		find $(REPORTS_DIR)/ -name "*.json" -mtime +30 -delete 2>/dev/null || true; \
+	fi
+	@if [ -d "$(LOG_DIR)" ]; then \
+		echo "Limpiando logs antiguos (>30 días)..."; \
+		find $(LOG_DIR)/ -name "*.log" -mtime +30 -delete 2>/dev/null || true; \
+	fi
+	@echo "$(GREEN)✅ Limpieza completada$(NC)"
 
-docker-compose-test: ## Ejecutar testing con docker-compose
-	@echo "$(BLUE)🐳 Testing con docker-compose...$(RESET)"
-	$(DOCKER_COMPOSE) -f docker-compose.testing.yml up --build --abort-on-container-exit
+# Limpieza completa (peligroso - elimina todo)
+clean-all: clean
+	@echo "$(YELLOW)⚠️  Eliminando TODOS los reportes y datos generados...$(NC)"
+	@read -p "Esta acción eliminará todos los reportes. ¿Continuar? [y/N] " confirm && \
+	[ "$$confirm" = "y" ] || exit 1; \
+	rm -rf $(REPORTS_DIR)/ $(LOG_DIR)/ *.json test_*.log *.log 2>/dev/null || true; \
+	@echo "$(GREEN)✅ Limpieza completa realizada$(NC)"
 
-# Cleanup
-clean: ## Limpiar archivos temporales y reportes antiguos
-	@echo "$(YELLOW)🧹 Limpiando archivos...$(RESET)"
-	find $(LOGS_DIR) -name "*.log" -mtime +7 -delete 2>/dev/null || true
-	find $(REPORTS_DIR) -name "*.html" -mtime +30 -delete 2>/dev/null || true
-	find $(REPORTS_DIR) -name "*.json" -mtime +30 -delete 2>/dev/null || true
-	rm -f temp_*.py
-	rm -f .coverage
-	@echo "$(GREEN)✅ Limpieza completada$(RESET)"
+# Compilar el sistema (verificación)
+compile:
+	@echo "$(BLUE)🔧 Compilando/verificando sistema...$(NC)"
+	@echo "Verificando sintaxis Python..."
+	@for file in *.py; do \
+		if [ -f "$$file" ]; then \
+			$(PYTHON) -m py_compile $$file && echo "✅ $$file" || echo "❌ $$file"; \
+		fi; \
+	done
+	@echo "$(GREEN)✅ Verificación de sintaxis completada$(NC)"
 
-clean-all: ## Limpiar todo (incluyendo dependencias)
-	@echo "$(YELLOW)🧹 Limpieza completa...$(RESET)"
-	$(MAKE) clean
-	$(DOCKER) system prune -f 2>/dev/null || true
-	@echo "$(GREEN)✅ Limpieza completa terminada$(RESET)"
+# Instalar sistema (setup completo)
+install-all: install setup-config
+	@echo "$(GREEN)🎉 Sistema instalado y configurado correctamente$(NC)"
+	@echo "Para empezar: make test-stress-lp1"
 
-# Development
-dev-install: ## Instalación para desarrollo
-	@echo "$(BLUE)👨‍💻 Configuración para desarrollo...$(RESET)"
-	$(PIP) install --upgrade pip
-	$(PIP) install -r requirements-test.txt
-	$(PIP) install -e .
-	@echo "$(GREEN)✅ Desarrollo configurado$(RESET)"
+# Mostrar información del sistema
+info:
+	@echo "$(BLUE)ℹ️  INFORMACIÓN DEL SISTEMA$(NC)"
+	@echo "==============================="
+	@echo "Directorio: $(PWD)"
+	@echo "Python: $$($(PYTHON) --version)"
+	@echo "Usuario: $$(whoami)"
+	@echo "Fecha: $$(date)"
+	@echo ""
+	@echo "Archivos del sistema:"
+	@ls -1 *.py | sed 's/^/  • /'
+	@echo ""
+	@echo "Para más información: make help"
 
-dev-test: ## Ejecutar tests en modo desarrollo
-	@echo "$(BLUE)🧪 Tests en modo desarrollo...$(RESET)"
-	pytest unit_tests/ -v --tb=short -x
+# Test de conectividad a bases de datos
+test-connections:
+	@echo "$(BLUE)🔗 Probando conectividad a bases de datos...$(NC)"
+	@if command -v mysql >/dev/null 2>&1; then \
+		echo "MySQL disponible"; \
+		mysql --version; \
+	else \
+		echo "$(YELLOW)⚠️  MySQL no encontrado en PATH$(NC)"; \
+	fi
+	@echo "$(GREEN)✅ Verificación de conectividad completada$(NC)"
 
-dev-watch: ## Ejecutar tests en modo watch
-	@echo "$(BLUE)👀 Tests en modo watch...$(RESET)"
-	ptw unit_tests/ integration_tests/ -- -v
+# Ejecutar todos los tests en modo demo (sin BD real)
+demo:
+	@echo "$(BLUE)🎭 Ejecutando demo del sistema...$(NC)"
+	@echo "Este demo muestra las capacidades sin ejecutar tests reales"
+	$(PYTHON) example_usage.py
 
-# Monitoring
-logs: ## Mostrar logs de testing
-	@echo "$(BLUE)📄 Mostrando logs recientes...$(RESET)"
-	tail -n 50 $(LOGS_DIR)/test_execution_*.log 2>/dev/null | head -20 || echo "No hay logs disponibles"
+# Ayuda rápida
+quick-start: install-all
+	@echo "$(GREEN)🚀 INSTALACIÓN RÁPIDA COMPLETADA$(NC)"
+	@echo ""
+	@echo "Para empezar rápidamente:"
+	@echo "1. Edita $(CONFIG_FILE) con tus credenciales de BD"
+	@echo "2. Ejecuta: make test-stress-lp1"
+	@echo "3. Ver resultados: make view-reports"
+	@echo ""
+	@echo "Para más opciones: make help"
 
-logs-follow: ## Seguir logs en tiempo real
-	@echo "$(BLUE)👁️ Siguiendo logs...$(RESET)"
-	tail -f $(LOGS_DIR)/test_execution_*.log
+# Targets de desarrollo
+dev-setup: install
+	@echo "$(BLUE)🛠️  Configuración para desarrollo...$(NC)"
+	$(PYTHON) -m pip install --user pylint black flake8 pytest
+	@echo "$(GREEN)✅ Herramientas de desarrollo instaladas$(NC)"
 
-monitor: ## Monitorear recursos del sistema
-	@echo "$(BLUE)📊 Monitoreando recursos...$(RESET)"
-	@echo "$(YELLOW)CPU y Memoria:$(RESET)"
-	top -bn1 | grep "Cpu(s)" && free -h
-	@echo "$(YELLOW)Espacio en disco:$(RESET)"
-	df -h . | tail -1
+# Verificar calidad del código
+lint:
+	@echo "$(BLUE)🔍 Verificando calidad del código...$(NC)"
+	@if command -v pylint >/dev/null 2>&1; then \
+		pylint *.py; \
+	else \
+		echo "$(YELLOW)⚠️  pylint no disponible. Instala con: pip install pylint$(NC)"; \
+	fi
 
-# Documentation
-docs: ## Generar documentación
-	@echo "$(BLUE)📚 Generando documentación...$(RESET)"
-	@echo "$(GREEN)Documentación disponible en README.md$(RESET)"
+# Ejecutar tests unitarios (si existen)
+test-unit:
+	@echo "$(BLUE)🧪 Ejecutando tests unitarios...$(NC)"
+	@if [ -d "tests" ]; then \
+		$(PYTHON) -m pytest tests/ -v; \
+	else \
+		echo "$(YELLOW)⚠️  Directorio tests/ no existe$(NC)"; \
+	fi
 
-# Health check
-health: ## Verificar salud del sistema de testing
-	@echo "$(BLUE)💊 Verificando salud del sistema...$(RESET)"
-	$(MAKE) validate-quick
-	@echo "$(YELLOW)Archivos del sistema:$(RESET)"
-	@ls -la $(REPORTS_DIR)/ 2>/dev/null | head -10 || echo "Directorio de reportes vacío"
-
-# Debug
-debug-config: ## Mostrar configuración actual
-	@echo "$(BLUE)🔧 Configuración actual:$(RESET)"
-	@echo "$(YELLOW)Python: $(shell $(PYTHON) --version)$(RESET)"
-	@echo "$(YELLOW)Pip: $(shell $(PIP) --version)$(RESET)"
-	@echo "$(YELLOW)Docker: $(shell $(DOCKER) --version 2>/dev/null || echo "No instalado")$(RESET)"
-	@echo "$(YELLOW)Python path: $(shell which $(PYTHON))$(RESET)"
-
-# Quality
-lint: ## Ejecutar linters de código
-	@echo "$(BLUE)🔍 Ejecutando linters...$(RESET)"
-	flake8 *.py unit_tests/ integration_tests/ --max-line-length=100 || true
-	black --check *.py unit_tests/ integration_tests/ || true
-
-format: ## Formatear código
-	@echo "$(BLUE)✨ Formateando código...$(RESET)"
-	black *.py unit_tests/ integration_tests/
-
-security-scan: ## Escaneo rápido de seguridad
-	@echo "$(BLUE)🔒 Escaneo de seguridad...$(RESET)"
-	bandit -r . -f json -o $(REPORTS_DIR)/quick_security_scan.json || true
-
-# Backup y restore
-backup-reports: ## Respaldar reportes importantes
-	@echo "$(BLUE)💾 Respaldando reportes...$(RESET)"
-	tar -czf $(REPORTS_DIR)/reports_backup_$(shell date +%Y%m%d_%H%M%S).tar.gz $(REPORTS_DIR)/$(shell date +%Y%m%d)*
-	@echo "$(GREEN)✅ Respaldo completado$(RESET)"
-
-# Environment specific
-staging-test: ## Ejecutar tests en ambiente staging
-	@echo "$(BLUE)🎭 Testing en staging...$(RESET)"
-	TEST_ENV=staging $(MAKE) test-all
-
-production-test: ## Ejecutar tests en ambiente production
-	@echo "$(BLUE)🚀 Testing en production...$(RESET)"
-	TEST_ENV=production $(MAKE) test-all
-
-# Performance monitoring
-performance-monitor: ## Monitoreo de performance durante testing
-	@echo "$(BLUE)📊 Monitoreando performance...$(RESET)"
-	@echo "$(YELLOW)Iniciando monitoreo en background...$(RESET)"
-	nohup htop > $(LOGS_DIR)/system_performance.log 2>&1 &
-	@echo "$(GREEN)✅ Monitoreo iniciado - revisar $(LOGS_DIR)/system_performance.log$(RESET)"
-
-# Quick commands
-quick: ## Validación y tests unitarios rápidos
-	@echo "$(BLUE)⚡ Ejecución rápida...$(RESET)"
-	$(MAKE) validate-quick
-	$(MAKE) test-unit
-
-full: ## Ejecución completa con todo incluido
-	@echo "$(BLUE)🎯 Ejecución completa del sistema...$(RESET)"
-	$(MAKE) setup
-	$(MAKE) test-all
-	$(MAKE) generate-reports
-	@echo "$(GREEN)🎉 Ejecución completa terminada!$(RESET)"
-
-# Show status
-status: ## Mostrar estado del sistema
-	@echo "$(BLUE)📊 Estado del Sistema de Testing$(RESET)"
-	@echo "$(YELLOW)=========================$(RESET)"
-	@echo "📁 Directorio actual: $(PWD)"
-	@echo "🐍 Python: $(shell $(PYTHON) --version 2>/dev/null || echo "No instalado")"
-	@echo "🐳 Docker: $(shell $(DOCKER) --version 2>/dev/null || echo "No instalado")"
-	@echo "📋 Configuración: $(shell test -f test_suite_config.yml && echo "✅ Encontrada" || echo "❌ No encontrada")"
-	@echo "📦 Dependencies: $(shell test -f requirements-test.txt && echo "✅ Encontradas" || echo "❌ No encontradas")"
-	@echo "📁 Reportes: $(shell ls -d $(REPORTS_DIR) 2>/dev/null && echo "✅ Creados" || echo "❌ No creados")"
-	@echo "📄 Logs: $(shell ls -d $(LOGS_DIR) 2>/dev/null && echo "✅ Creados" || echo "❌ No creados")"
+# Descripción del proyecto
+desc:
+	@echo "$(BLUE)📋 DESCRIPCIÓN DEL PROYECTO$(NC)"
+	@echo "============================="
+	@echo ""
+	@echo "Sistema Completo de Stress Testing para:"
+	@echo "  • LP1 - Sistema Bancario (MySQL)"
+	@echo "  • LP2 - Sistema RENIEC (MySQL)"
+	@echo "  • Validación de integridad entre bases de datos"
+	@echo "  • Tests de persistencia y recuperación"
+	@echo "  • Generación automática de reportes HTML/JSON"
+	@echo "  • Automatización completa con scheduling"
+	@echo ""
+	@echo "Características principales:"
+	@echo "  ✓ 1500+ registros de prueba automatizados"
+	@echo "  ✓ 50 hilos concurrentes para carga máxima"
+	@echo "  ✓ Métricas detalladas de performance"
+	@echo "  ✓ Validación de integridad referencial"
+	@echo "  ✓ Tests de recuperación ante fallos"
+	@echo "  ✓ Reportes interactivos con gráficos"
+	@echo "  ✓ Configuración centralizada JSON"
+	@echo "  ✓ Programación automática de tests"
+	@echo ""

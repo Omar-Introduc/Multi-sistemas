@@ -1,611 +1,432 @@
-# 🎯 Sistema de Testing Final v2.0
+# Sistema Completo de Stress Testing
 
-Sistema completo de testing automatizado para el **Sistema Distribuido Shibasito** que incluye tests unitarios, integración, E2E, performance, seguridad, reportes ejecutivos y integración CI/CD completa.
+## 📋 Descripción General
 
-## 📋 Índice
+Este sistema proporciona una suite completa de pruebas de estrés y validación para sistemas distribuidos con bases de datos MySQL. Incluye pruebas específicas para:
 
-- [🚀 Características](#-características)
-- [🏗️ Arquitectura](#️-arquitectura)
-- [📦 Instalación](#-instalación)
-- [🧪 Tipos de Testing](#-tipos-de-testing)
-- [⚙️ Configuración](#️-configuración)
-- [🚀 Ejecución](#-ejecución)
-- [📊 Reportes](#-reportes)
-- [🔄 CI/CD](#-cicd)
-- [📈 Métricas](#-métricas)
-- [🛠️ Mantenimiento](#️-mantenimiento)
-- [🤝 Contribución](#-contribución)
+- **LP1 - Sistema Bancario**: Tests de estrés para operaciones bancarias
+- **LP2 - Sistema RENIEC**: Tests de estrés para validación de identidad
+- **Validación de Integridad**: Verificación cruzada entre bases de datos
+- **Tests de Persistencia**: Validación de recuperación y backups
+- **Generación de Reportes**: HTML y JSON automáticos
+- **Automatización**: Ejecución programada y coordinación de tests
 
-## 🚀 Características
-
-### ✨ Funcionalidades Principales
-
-- **🧪 Testing Completo**: Unitarios, Integración, E2E, Performance, Seguridad
-- **⚡ Ejecución Paralela**: Múltiples suites ejecutándose simultáneamente
-- **📊 Reportes Ejecutivos**: Visualizaciones y análisis avanzados
-- **🔄 CI/CD Integrado**: GitHub Actions, GitLab CI, Jenkins
-- **📈 Métricas Avanzadas**: Performance, cobertura, regresiones
-- **🔍 Validación Pre-Test**: Verificación del sistema completo
-- **📱 Notificaciones**: Slack, Email, webhooks
-- **🛡️ Análisis de Seguridad**: Bandit, Safety, vulnerabilidades
-
-### 🎯 Objetivos
-
-- ✅ **95%+ Tasa de Éxito** en tests
-- ✅ **80%+ Cobertura de Código** en tests unitarios
-- ✅ **< 5 Minutos** tiempo de ejecución para validación rápida
-- ✅ **Reportes Ejecutivos** automáticos para stakeholders
-- ✅ **Integración CI/CD** completa y automatizada
-
-## 🏗️ Arquitectura
+## 🏗️ Estructura del Sistema
 
 ```
 testing_system/
-├── 🔧 run_all_tests.py           # Ejecutor principal
-├── 📋 test_suite_config.yml      # Configuración completa
-├── 📦 requirements-test.txt      # Dependencias
-├── 🔍 validate_system.py         # Validador del sistema
-├── 📊 generate_final_report.py   # Generador de reportes
-├── 📁 reports/                   # Reportes generados
-├── 📁 execution_logs/            # Logs de ejecución
-├── 🐳 .github/workflows/         # GitHub Actions
-├── 🔧 .gitlab-ci.yml             # GitLab CI
-├── 🐳 docker-compose.testing.yml # Orquestación de servicios
-├── 🧰 Makefile                   # Comandos de desarrollo
-└── 📚 README.md                  # Esta documentación
+├── stress_test_lp1.py              # Tests de estrés para LP1 Banco
+├── stress_test_lp2.py              # Tests de estrés para LP2 RENIEC
+├── validate_data_integrity.py      # Validación de integridad BD1 vs BD2
+├── generate_test_reports.py        # Generador de reportes HTML/JSON
+├── automation_test_suite.py        # Suite de automatización
+├── persistence_tests.py            # Tests de persistencia y recuperación
+├── README.md                       # Esta documentación
+├── example_usage.py                # Ejemplo de uso
+├── test_reports/                   # Reportes generados
+├── automation_config.json         # Configuración (generable)
+└── logs/                          # Archivos de log
 ```
 
-### 🔄 Flujo de Ejecución
+## 🚀 Características Principales
 
-```mermaid
-graph TD
-    A[Iniciar Sistema] --> B[Validar Configuración]
-    B --> C[Validar Dependencias]
-    C --> D[Validar Servicios]
-    D --> E[Ejecutar Tests Unitarios]
-    D --> F[Ejecutar Tests Integración]
-    D --> G[Ejecutar Tests E2E]
-    D --> H[Ejecutar Tests Performance]
-    D --> I[Ejecutar Tests Seguridad]
-    E --> J[Generar Reportes]
-    F --> J
-    G --> J
-    H --> J
-    I --> J
-    J --> K[Enviar Notificaciones]
-    K --> L[Publicar en CI/CD]
-```
+### 1. Stress Testing LP1 (Sistema Bancario)
+- ✅ 1500+ registros de prueba automatizados
+- ✅ 50 hilos concurrentes para carga máxima
+- ✅ Generación de clientes, cuentas, transacciones y préstamos
+- ✅ Métricas detalladas de performance
+- ✅ Validación de integridad de datos bancarios
+- ✅ Timeouts configurables (30s por defecto)
 
-## 📦 Instalación
+### 2. Stress Testing LP2 (Sistema RENIEC)
+- ✅ 1500+ ciudadanos de prueba
+- ✅ Simulación de validadores y sesiones
+- ✅ Validación específica de DNIs
+- ✅ Tests de auditoría y trazabilidad
+- ✅ Análisis de cumplimiento normativo
+- ✅ Pruebas de verificación de identidad
+
+### 3. Validación de Integridad
+- ✅ Comparación cruzada entre BD1 y BD2
+- ✅ Verificación de consistencia de datos
+- ✅ Análisis de integridad referencial
+- ✅ Detección de anomalías y duplicados
+- ✅ Validación de transacciones ACID
+- ✅ Evaluación de cumplimiento normativo
+
+### 4. Tests de Persistencia
+- ✅ Pruebas de recuperación ante fallos
+- ✅ Validación de backups y restauraciones
+- ✅ Tests de concurrencia y transacciones
+- ✅ Análisis de performance de persistencia
+- ✅ Verificación de constraints y triggers
+- ✅ Simulación de escenarios de error
+
+### 5. Generación de Reportes
+- ✅ Reportes HTML interactivos con gráficos
+- ✅ Reportes JSON estructurados para integración
+- ✅ Dashboard ejecutivo con métricas clave
+- ✅ Análisis estadístico avanzado
+- ✅ Comparaciones históricas
+- ✅ Exportación automática
+
+### 6. Automatización Completa
+- ✅ Ejecución secuencial y paralela
+- ✅ Configuración centralizada JSON
+- ✅ Programación de tests automáticos
+- ✅ Manejo de dependencias entre tests
+- ✅ Orquestación de reportes
+- ✅ Monitoreo de resultados
+
+## 📊 Métricas y Validaciones
+
+### Métricas de Performance
+- **Tiempo de respuesta promedio/mínimo/máximo**
+- **Operaciones por segundo**
+- **Tasa de éxito/fallo**
+- **Uso de CPU y memoria**
+- **Throughput de transacciones**
+
+### Métricas de Calidad de Datos
+- **Integridad referencial**
+- **Validación de formatos (DNI, email, teléfono)**
+- **Consistencia de datos**
+- **Duplicados detectados**
+- **Constraints y validaciones**
+
+### Métricas de Concurrencia
+- **Hilos completados exitosamente**
+- **Colisiones y deadlocks**
+- **Distribución de carga**
+- **Escalabilidad del sistema**
+
+## 🔧 Instalación y Configuración
 
 ### Prerrequisitos
-
-- **Python 3.8+**
-- **Docker & Docker Compose**
-- **Node.js 16+** (para Playwright)
-- **Git**
-
-### 🚀 Instalación Rápida
-
 ```bash
-# 1. Clonar el repositorio
-git clone <repository-url>
-cd testing_system
-
-# 2. Ejecutar script de configuración automática
-chmod +x setup_testing_environment.sh
-./setup_testing_environment.sh
-
-# 3. Verificar instalación
-python validate_system.py
+# Python 3.8+
+# MySQL 5.7+ / MariaDB 10.3+
+# Bibliotecas Python:
+pip install mysql-connector-python pandas schedule
 ```
 
-### 📦 Instalación Manual
+### Configuración de Bases de Datos
 
-```bash
-# Instalar dependencias Python
-pip install -r requirements-test.txt
-
-# Instalar herramientas de testing
-pip install playwright
-playwright install chromium
-
-# Configurar permisos
-chmod +x *.py
-
-# Crear directorios
-mkdir -p reports execution_logs
-
-# Verificar sistema
-python validate_system.py
+#### LP1 - Sistema Bancario
+```sql
+CREATE DATABASE banco_lp1 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- Usar scripts de /workspace/shibasito-sistema-distribuido/init-scripts/
 ```
 
-### 🐳 Instalación con Docker
-
-```bash
-# Usar Docker Compose para testing
-docker-compose -f docker-compose.testing.yml up --build
-
-# En una terminal separada, ejecutar tests
-docker-compose -f docker-compose.testing.yml exec testing python run_all_tests.py
+#### LP2 - Sistema RENIEC
+```sql
+CREATE DATABASE reniec_lp2 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- Usar scripts de /workspace/shibasito-sistema-distribuido/init-scripts/
 ```
 
-## 🧪 Tipos de Testing
-
-### 🧪 Tests Unitarios
-
-- **Ubicación**: `unit_tests/`
-- **Tecnologías**: pytest, coverage
-- **Cobertura**: >80%
-- **Mocking**: APIs externas simuladas
-- **Ejemplo**: `pytest unit_tests/ --cov=src`
-
-### 🔗 Tests de Integración
-
-- **Ubicación**: `integration_tests/`
-- **Servicios**: PostgreSQL, Redis, RabbitMQ
-- **Configuración**: Reset de BD automático
-- **Tiempo límite**: 30s por test
-
-### 🌐 Tests End-to-End (E2E)
-
-- **Ubicación**: `e2e_tests/`
-- **Framework**: Playwright
-- **Navegadores**: Chromium (principal)
-- **Capturas**: Screenshots en fallos
-- **Videos**: Grabación de sesiones
-
-### ⚡ Tests de Performance
-
-- **Ubicación**: `performance_tests/`
-- **Herramienta**: Locust
-- **Métricas**: 
-  - Requests/segundo
-  - Latencia p95/p99
-  - Throughput
-  - Resource usage
-
-### 🔒 Tests de Seguridad
-
-- **Ubicación**: `security_tests/`
-- **Herramientas**: Bandit, Safety
-- **Análisis**:
-  - Inyecciones SQL
-  - XSS
-  - Bypass de autenticación
-  - Vulnerabilidades de dependencias
-
-## ⚙️ Configuración
-
-### 📋 Archivo Principal (`test_suite_config.yml`)
-
-```yaml
-# Configuración General
-general:
-  project_name: "Sistema Distribuido Shibasito"
-  test_environment: "production"
-  parallel_execution: true
-  max_parallel_workers: 8
-
-# Configuración de Suites
-unit_tests:
-  enabled: true
-  coverage_threshold: 80
-  parallel_execution: true
-
-integration_tests:
-  enabled: true
-  database_reset: true
-  external_dependencies: [rabbitmq, redis, postgres]
-
-e2e_tests:
-  enabled: true
-  browser: "chromium"
-  headless: true
-  screenshot_on_failure: true
-
-# Servicios a Probar
-services:
-  lp1_banco:
-    url: "http://localhost:8001"
-    health_check: "/health"
-```
-
-### 🔧 Configuración de Servicios
-
-```yaml
-services:
-  postgres:
-    host: "localhost"
-    port: 5432
-    database: "test_db"
-    username: "postgres"
-    password: "postgres"
-    
-  redis:
-    host: "localhost"
-    port: 6379
-    
-  rabbitmq:
-    host: "localhost"
-    port: 5672
-    username: "guest"
-    password: "guest"
-```
-
-### 📊 Configuración de Reportes
-
-```yaml
-reporting:
-  output_formats: [html, json, pdf]
-  generate_charts: true
-  include_screenshots: true
-  generate_executive_summary: true
-  output_directory: "./reports"
-```
-
-## 🚀 Ejecución
-
-### 🎯 Ejecución Completa
-
-```bash
-# Ejecutar todo el sistema de testing
-python run_all_tests.py
-
-# Con reporte final
-python run_all_tests.py --generate-report
-
-# Con validación previa
-python run_all_tests.py --validate-system --generate-report
-```
-
-### 🧪 Ejecución por Tipo
-
-```bash
-# Solo tests unitarios
-pytest unit_tests/ -v
-
-# Solo tests de integración
-pytest integration_tests/ -v
-
-# Tests E2E específicos
-playwright test e2e_tests/test_login.spec.js
-
-# Tests de performance
-locust -f performance_tests/load_test.py --headless --users 100
-```
-
-### ⚡ Ejecución Paralela
-
-```bash
-# Paralelizar tests unitarios
-pytest unit_tests/ -n auto
-
-# Tests específicos en paralelo
-pytest integration_tests/ -n 4
-```
-
-### 🔍 Validación del Sistema
-
-```bash
-# Validación completa
-python validate_system.py
-
-# Validación detallada
-python validate_system.py --verbose
-
-# Solo verificar servicios
-python validate_system.py --check-services
-```
-
-## 📊 Reportes
-
-### 📈 Tipos de Reportes
-
-1. **📄 Reporte Ejecutivo HTML**
-   - Dashboard interactivo
-   - Métricas de performance
-   - Análisis de tendencias
-   - Recomendaciones estratégicas
-
-2. **📊 Reporte JSON**
-   - Datos estructurados
-   - Para APIs y integraciones
-   - Métricas detalladas
-
-3. **🎯 Reportes de Cobertura**
-   - HTML interactivo
-   - XML para CI/CD
-   - Métricas por archivo
-
-4. **⚡ Reportes de Performance**
-   - Gráficos de latencia
-   - Throughput
-   - Resource usage
-
-### 📁 Estructura de Reportes
-
-```
-reports/
-├── executive_report_YYYYMMDD_HHMMSS.html  # Reporte principal
-├── test_results_YYYYMMDD_HHMMSS.json      # Datos estructurados
-├── coverage_unit_html/                    # Cobertura detallada
-├── e2e-results/                          # Resultados E2E
-├── performance_50_users_report.html      # Reportes de performance
-├── security_bandit.json                  # Análisis de seguridad
-└── charts/                               # Gráficos generados
-    ├── trends.png
-    ├── performance.png
-    ├── coverage_heatmap.png
-    └── regression_analysis.png
-```
-
-### 📱 Acceso a Reportes
-
-```bash
-# Generar reporte final
-python generate_final_report.py
-
-# Con datos específicos
-python generate_final_report.py --input test_results.json
-
-# Directorio personalizado
-python generate_final_report.py --output-dir ./custom_reports
-```
-
-## 🔄 CI/CD
-
-### 🐙 GitHub Actions
-
-**Archivo**: `.github/workflows/testing.yml`
-
-```yaml
-name: 🎯 Comprehensive Testing Suite
-on: [push, pull_request]
-jobs:
-  validate-system:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-      - run: python validate_system.py
-```
-
-### 🦊 GitLab CI
-
-**Archivo**: `.gitlab-ci.yml`
-
-```yaml
-stages:
-  - validate
-  - test
-  - report
-
-system_validation:
-  stage: validate
-  script:
-    - python validate_system.py
-```
-
-### 🐋 Docker Compose para Testing
-
-**Archivo**: `docker-compose.testing.yml`
-
-```yaml
-version: '3.8'
-services:
-  testing:
-    build: .
-    command: python run_all_tests.py
-    volumes:
-      - ./reports:/app/reports
-    environment:
-      - TEST_ENV=docker
-```
-
-## 📈 Métricas
-
-### 🎯 KPIs Principales
-
-| Métrica | Objetivo | Actual |
-|---------|----------|--------|
-| Tasa de Éxito | 95% | 97.2% |
-| Cobertura de Código | 80% | 87.5% |
-| Tiempo de Ejecución | < 5 min | 3.2 min |
-| Tests Ejecutados | 100 | 103 |
-
-### 📊 Métricas de Performance
-
-```python
-# Ejemplo de métricas recolectadas
-metrics = {
-    "cpu_usage": 45.2,      # Porcentaje promedio
-    "memory_usage": 62.1,   # Porcentaje promedio
-    "test_duration": 192.5, # Segundos total
-    "success_rate": 97.2,   # Porcentaje
-    "coverage": 87.5        # Porcentaje
+### Configuración del Sistema
+
+Crear archivo `automation_config.json`:
+
+```json
+{
+    "databases": {
+        "lp1": {
+            "host": "localhost",
+            "port": 3306,
+            "user": "root",
+            "password": "password",
+            "database": "banco_lp1",
+            "charset": "utf8mb4"
+        },
+        "lp2": {
+            "host": "localhost", 
+            "port": 3306,
+            "user": "root",
+            "password": "password",
+            "database": "reniec_lp2",
+            "charset": "utf8mb4"
+        }
+    },
+    "test_settings": {
+        "target_records": 1500,
+        "concurrent_threads": 50,
+        "timeout_seconds": 30,
+        "parallel_execution": true
+    },
+    "thresholds": {
+        "success_rate_minimum": 95.0,
+        "response_time_maximum": 2.0,
+        "error_rate_maximum": 5.0
+    }
 }
 ```
 
-### 📈 Dashboard de Métricas
+## 🎯 Uso del Sistema
 
-- **Tiempo Real**: Durante ejecución
-- **Histórico**: Tendencias por build
-- **Por Suite**: Performance individual
-- **Por Componente**: Análisis detallado
+### Uso Básico - Ejecución Individual
 
-## 🛠️ Mantenimiento
-
-### 🔄 Actualización de Dependencias
-
+#### Stress Test LP1 (Banco)
 ```bash
-# Verificar dependencias obsoletas
-pip list --outdated
-
-# Actualizar requirements-test.txt
-pip freeze > requirements-test.txt
-
-# Actualizar herramientas de testing
-playwright install --with-deps
+python stress_test_lp1.py
 ```
 
-### 📁 Limpieza de Datos
-
+#### Stress Test LP2 (RENIEC)
 ```bash
-# Limpiar logs antiguos
-find execution_logs/ -name "*.log" -mtime +7 -delete
-
-# Limpiar reportes antiguos
-find reports/ -name "*.html" -mtime +30 -delete
-
-# Limpiar archivos temporales
-rm -f temp_*.py
+python stress_test_lp2.py
 ```
 
-### 🔧 Configuración Avanzada
-
+#### Validación de Integridad
 ```bash
-# Variables de entorno
-export TEST_CONFIG_PATH=/custom/config.yml
-export REPORTS_DIR=/custom/reports
-export LOG_LEVEL=DEBUG
-
-# Configuración específica por entorno
-export TEST_ENV=staging
-export SERVICES_URL=http://staging.api.com
+python validate_data_integrity.py
 ```
 
-## 📋 Comandos Útiles
-
-### 🐟 Makefile
-
+#### Tests de Persistencia
 ```bash
-# Ver todos los comandos disponibles
-make help
-
-# Setup completo del entorno
-make setup
-
-# Ejecutar testing completo
-make test-all
-
-# Validar sistema
-make validate
-
-# Generar reportes
-make reports
-
-# Limpiar archivos temporales
-make clean
-
-# Ejecutar tests específicos
-make test-unit
-make test-integration
-make test-e2e
-make test-performance
-make test-security
+python persistence_tests.py
 ```
 
-### 🐳 Docker Commands
+### Uso Avanzado - Suite Completa
 
+#### Ejecutar Suite Completa
 ```bash
-# Construir imagen de testing
-docker build -t shibasito-testing .
-
-# Ejecutar container de testing
-docker run -v $(pwd)/reports:/app/reports shibasito-testing
-
-# Testing con docker-compose
-docker-compose -f docker-compose.testing.yml up --build
+python automation_test_suite.py --mode full --config automation_config.json
 ```
 
-## 🤝 Contribución
-
-### 📝 Guidelines
-
-1. **Fork** del repositorio
-2. **Crear** feature branch: `git checkout -b feature/nueva-funcionalidad`
-3. **Commit** con mensajes descriptivos
-4. **Push** al branch: `git push origin feature/nueva-funcionalidad`
-5. **Crear** Pull Request
-
-### 🧪 Adding New Tests
-
+#### Ejecutar Solo Tests de Stress
 ```bash
-# Estructura para nuevo test
-mkdir -p unit_tests/nueva_suite/
-touch unit_tests/nueva_suite/test_feature.py
-
-# Template básico
-import pytest
-from unittest.mock import Mock
-
-def test_feature_basic():
-    # Arrange
-    expected = True
-    
-    # Act
-    actual = feature_function()
-    
-    # Assert
-    assert actual == expected
+python automation_test_suite.py --mode stress --parallel
 ```
 
-### 📊 Adding New Metrics
+#### Ejecutar Tests Programados
+```bash
+python automation_test_suite.py --mode scheduled --config automation_config.json
+```
+
+#### Crear Configuración de Ejemplo
+```bash
+python automation_test_suite.py --create-config
+```
+
+### Ejemplo de Uso Programático
 
 ```python
-# En validate_system.py
-def _check_custom_metric(self) -> ValidationResult:
-    start_time = time.time()
-    
-    # Implementar verificación
-    result = check_custom_requirement()
-    
-    return ValidationResult(
-        component="Custom Metric",
-        status="passed" if result else "failed",
-        message=f"Custom metric validation: {'OK' if result else 'FAILED'}",
-        duration=time.time() - start_time
-    )
+from automation_test_suite import AutomationTestSuite, TestConfiguration
+
+# Crear configuración
+config = TestConfiguration('automation_config.json')
+
+# Crear suite
+suite = AutomationTestSuite(config)
+
+# Ejecutar suite completa
+results = suite.run_comprehensive_test_suite()
+
+# Verificar resultados
+if results['overall_success']:
+    print("✅ Tests ejecutados exitosamente")
+else:
+    print("❌ Algunos tests fallaron")
+
+# Ver reportes generados
+report_files = results['final_report']['report_files']
+for file_type, file_path in report_files.items():
+    print(f"{file_type}: {file_path}")
 ```
+
+## 📈 Interpretación de Resultados
+
+### Códigos de Estado
+- **PASSED**: Test ejecutado exitosamente, todos los criterios cumplidos
+- **WARNING**: Test ejecutado con warnings, pero dentro de tolerancias
+- **FAILED**: Test falló, requiere atención inmediata
+
+### Métricas de Éxito
+- **Tasa de Éxito**: >95% para considerar exitoso
+- **Tiempo de Respuesta**: <2.0s promedio para considerar bueno
+- **Tasa de Errores**: <5% para considerar aceptable
+
+### Reportes Generados
+
+#### Reporte HTML
+- Dashboard interactivo con gráficos
+- Navegación por secciones
+- Visualización de métricas en tiempo real
+- Exportación a PDF
+
+#### Reporte JSON
+- Datos estructurados para integración
+- Métricas detalladas y metadata
+- Historial de ejecuciones
+- Análisis de tendencias
+
+## 🔍 Validaciones Específicas
+
+### LP1 - Sistema Bancario
+- ✅ Emails válidos (formato RFC)
+- ✅ Teléfonos peruanos (+51)
+- ✅ Saldos no negativos
+- ✅ Transacciones con cuentas válidas
+- ✅ Préstamos con clientes asociados
+- ✅ Fechas de vencimiento consistentes
+
+### LP2 - Sistema RENIEC
+- ✅ DNIs únicos y formato válido (8 dígitos)
+- ✅ Fechas de nacimiento válidas
+- ✅ Validadores con sesiones activas
+- ✅ Auditoría completa de operaciones
+- ✅ Trazabilidad de modificaciones
+- ✅ Cumplimiento de niveles de acceso
+
+### Integridad Cruzada
+- ✅ Consistencia entre bases de datos
+- ✅ Patrones de nombres similares
+- ✅ Relación usuarios activos vs sesiones
+- ✅ Verificación de integridad referencial
+
+## 🚨 Alertas y Recomendaciones
+
+### Alertas Críticas
+- Tasa de éxito < 80%
+- Tiempo de respuesta > 5s
+- Pérdida de datos durante tests
+- Fallas en recovery/backup
+
+### Alertas de Atención
+- Tasa de éxito 80-95%
+- Tiempo de respuesta 2-5s
+- Warnings en validaciones
+- Uso de recursos elevado
+
+### Recomendaciones Automáticas
+- Optimización de índices
+- Ajuste de timeouts
+- Mejora de configuración de BD
+- Procedimientos de backup
+
+## 📅 Programación de Tests
+
+### Configuración de Cron
+```bash
+# Tests diarios a las 2:00 AM
+0 2 * * * cd /path/to/testing_system && python automation_test_suite.py --mode scheduled
+
+# Tests de estrés cada 6 horas
+0 */6 * * * cd /path/to/testing_system && python automation_test_suite.py --mode stress
+
+# Validación de integridad semanal (domingos 3:00 AM)
+0 3 * * 0 cd /path/to/testing_system && python automation_test_suite.py --mode integrity
+```
+
+### Configuración Programada
+```json
+{
+    "scheduling": {
+        "enable_scheduling": true,
+        "daily_tests_time": "02:00",
+        "weekly_tests_day": "sunday",
+        "stress_tests_schedule": "0 */6 * * *",
+        "integrity_tests_schedule": "0 3 * * 0"
+    }
+}
+```
+
+## 🔧 Solución de Problemas
+
+### Errores Comunes
+
+#### Error de Conexión a BD
+```
+❌ Error conectando a base de datos: Access denied
+```
+**Solución**: Verificar credenciales en configuración y que el usuario tenga permisos.
+
+#### Timeout en Tests
+```
+⚠️ Hilo 7: Timeout excedido
+```
+**Solución**: Aumentar `timeout_seconds` en configuración o optimizar consultas.
+
+#### Errores de Duplicados
+```
+Duplicate entry '12345678' for key 'dni'
+```
+**Solución**: Limpiar datos de prueba anteriores o usar datos únicos.
+
+#### Memoria Insuficiente
+```
+MemoryError: Unable to allocate array
+```
+**Solución**: Reducir `concurrent_threads` o `target_records`.
+
+### Logs de Debug
+
+#### Habilitar Logging Detallado
+```python
+import logging
+logging.basicConfig(level=logging.DEBUG)
+```
+
+#### Archivos de Log
+- `stress_test_lp1.log`: Logs específicos LP1
+- `stress_test_lp2.log`: Logs específicos LP2  
+- `data_integrity_validation.log`: Logs de validación
+- `persistence_tests.log`: Logs de persistencia
+- `automation_suite.log`: Logs de automatización
+
+## 📊 Métricas de Performance Esperadas
+
+### LP1 - Sistema Bancario
+- **Throughput**: 100-200 ops/segundo
+- **Latencia**: <500ms promedio
+- **Éxito**: >95% operaciones exitosas
+- **Concurrencia**: 50 hilos sin degradación
+
+### LP2 - Sistema RENIEC
+- **Throughput**: 80-150 consultas/segundo
+- **Latencia**: <800ms promedio
+- **Éxito**: >98% validaciones exitosas
+- **Integridad**: 100% DNIs válidos
+
+### Sistema Completo
+- **Disponibilidad**: >99.5%
+- **Recuperación**: <30 segundos
+- **Backup**: <5 minutos
+- **Restauración**: <10 minutos
+
+## 🔒 Seguridad y Compliance
+
+### Validaciones de Seguridad
+- ✅ Sanitización de inputs
+- ✅ Prevención de SQL injection
+- ✅ Validación de formatos
+- ✅ Logs de auditoría
+
+### Compliance Normativo
+- ✅ Trazabilidad de operaciones
+- ✅ Integridad de datos
+- ✅ Backup y recuperación
+- ✅ Monitoreo continuo
 
 ## 📞 Soporte
 
-### 🐛 Reportar Bugs
+Para soporte técnico o consultas:
+1. Revisar logs en directorio `logs/`
+2. Consultar archivos de reporte generados
+3. Verificar configuración de base de datos
+4. Contactar al equipo de desarrollo
 
-- **GitHub Issues**: Crear issue con template
-- **Labels**: bug, enhancement, documentation
-- **Información requerida**:
-  - Versión del sistema
-  - Logs completos
-  - Pasos para reproducir
-  - Comportamiento esperado vs actual
+## 📝 Changelog
 
-### 💬 Contacto
-
-- **Email**: testing-support@empresa.com
-- **Slack**: #testing-system
-- **Documentation**: https://docs.empresa.com/testing
-
-### 📚 Recursos Adicionales
-
-- [📖 Documentación de pytest](https://docs.pytest.org/)
-- [🎭 Playwright Documentation](https://playwright.dev/)
-- [⚡ Locust Load Testing](https://locust.io/)
-- [🔒 Bandit Security Linter](https://bandit.readthedocs.io/)
+### v1.0.0 (2025-10-30)
+- ✅ Implementación completa de stress testing LP1/LP2
+- ✅ Validación de integridad entre bases de datos
+- ✅ Tests de persistencia y recuperación
+- ✅ Generación automática de reportes HTML/JSON
+- ✅ Suite de automatización completa
+- ✅ Documentación detallada
 
 ---
 
-## 📄 Licencia
-
-MIT License - Ver archivo `LICENSE` para detalles.
-
-## 🙏 Agradecimientos
-
-- Equipo de QA por feedback y mejoras
-- DevOps por integración CI/CD
-- Product Owner por requisitos claros
-
----
-
-**🎯 Sistema de Testing Final v2.0** - *Calidad, Velocidad y Confiabilidad* 🚀
+**Sistema de Testing Automatizado v1.0.0**  
+*Desarrollado para validación exhaustiva de sistemas distribuidos*
