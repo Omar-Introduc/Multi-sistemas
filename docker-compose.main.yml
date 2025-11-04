@@ -1,0 +1,105 @@
+version: '3.9'
+
+services:
+  # NODO 1: SISTEMA BANCO SHIBASITO
+  servicio-banco-lp1:
+    build:
+      context: ./servicio-banco-lp1
+    image: razzeti/servicio-banco-lp1
+    container_name: servicio-banco-lp1
+    restart: unless-stopped
+    depends_on:
+      - postgres-db
+      - rabbitmq
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/${POSTGRES_DB}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    networks:
+      - shibasito-net
+
+  postgres-db:
+    image: postgres:15
+    container_name: postgres-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    networks:
+      - shibasito-net
+
+  # NODO 2: SISTEMA RENIEC
+  servicio-reniec-lp2:
+    build:
+      context: ./servicio-reniec-lp2
+    image: razzeti/servicio-reniec-lp2
+    container_name: servicio-reniec-lp2
+    restart: unless-stopped
+    depends_on:
+      - mysql-db
+      - rabbitmq
+    environment:
+      - DATABASE_URL=mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql-db/${MYSQL_DATABASE}
+    networks:
+      - shibasito-net
+
+  mysql-db:
+    image: mysql:8.0
+    container_name: mysql-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+    networks:
+      - shibasito-net
+
+  # NODO 3: MIDDLEWARE RABBITMQ
+  rabbitmq:
+    image: rabbitmq:3.11-management
+    container_name: rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
+    networks:
+      - shibasito-net
+
+  # NODO 4: APLICACIONES CLIENTE (Placeholder, not implemented yet)
+
+  # MONITORING
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - shibasito-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+    networks:
+      - shibasito-net
+
+networks:
+  shibasito-net:
+    driver: bridge

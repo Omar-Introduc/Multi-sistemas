@@ -1,0 +1,31 @@
+#-*- mode: gitignore -*-
+
+# Env files
+.env
+
+# Docker
+.dockerignore
+**/docker-compose.yml
+**/docker-compose.override.yml
+!**/docker-compose.*.yml
+
+# Logs
+logs/
+*.log
+
+# Dependencies
+node_modules/
+**/node_modules/
+**/target/
+**/build/
+.settings/
+.classpath
+.project
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
