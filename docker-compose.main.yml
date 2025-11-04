@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   # NODO 1: SISTEMA BANCO SHIBASITO
   servicio-banco-lp1:
@@ -33,6 +31,7 @@ services:
       - shibasito-net
 
   # NODO 2: SISTEMA RENIEC
+# En docker-compose.main.yml
   servicio-reniec-lp2:
     build:
       context: ./servicio-reniec-lp2
@@ -44,6 +43,10 @@ services:
       - rabbitmq
     environment:
       - DATABASE_URL=mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql-db/${MYSQL_DATABASE}
+      # AÑADIR ESTAS LÍNEAS para seed.py:
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
     networks:
       - shibasito-net
 
@@ -62,8 +65,9 @@ services:
       - shibasito-net
 
   # NODO 3: MIDDLEWARE RABBITMQ
+# NODO 3: MIDDLEWARE RABBITMQ
   rabbitmq:
-    image: rabbitmq:3.11-management
+    image: rabbitmq:4.0-management
     container_name: rabbitmq
     restart: unless-stopped
     ports:
@@ -72,6 +76,8 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq/mnesia # <-- Esta línea es nueva
     networks:
       - shibasito-net
 
@@ -103,3 +109,6 @@ services:
 networks:
   shibasito-net:
     driver: bridge
+
+volumes:
+  rabbitmq_data:

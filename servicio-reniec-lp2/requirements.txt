@@ -5,3 +5,4 @@ pymysql
 pydantic
 pika
 pytest
+cryptography # llamada moderna
