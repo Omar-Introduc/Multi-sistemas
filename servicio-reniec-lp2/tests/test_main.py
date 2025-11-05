@@ -46,7 +46,6 @@ def test_create_persona(client):
     assert data["dni"] == "12345678"
 
 def test_read_persona(client):
-    # First create a person to read
     client.post(
         "/personas/",
         json={
