@@ -10,10 +10,9 @@ import pytest
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-Base.metadata.create_all(bind=engine)
-
 @pytest.fixture()
 def db_session():
+    Base.metadata.create_all(bind=engine)
     connection = engine.connect()
     transaction = connection.begin()
     session = TestingSessionLocal(bind=connection)
@@ -21,6 +20,7 @@ def db_session():
     session.close()
     transaction.rollback()
     connection.close()
+    Base.metadata.drop_all(bind=engine)
 
 def test_create_and_get_persona(db_session):
     persona_data = {
