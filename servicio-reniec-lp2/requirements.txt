@@ -6,3 +6,4 @@ pydantic
 pika
 pytest
 cryptography # llamada moderna
+httpx
