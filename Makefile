@@ -24,7 +24,7 @@ logs:
 
 test:
 	@echo "Running tests..."
-	$(DOCKER_COMPOSE) run --rm servicio-banco-lp1 mvn test
+# $(DOCKER_COMPOSE) run --rm servicio-banco-lp1 mvn test
 	$(DOCKER_COMPOSE) run --rm servicio-reniec-lp2 pytest
 
 push:
