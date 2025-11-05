@@ -1,0 +1,14 @@
+# Configuración de PostgreSQL (para servicio-banco-lp1)
+POSTGRES_DB=db_banco
+POSTGRES_USER=admin_banco
+POSTGRES_PASSWORD=pass_banco123
+
+# Configuración de MySQL (para servicio-reniec-lp2)
+MYSQL_DATABASE=db_reniec
+MYSQL_USER=admin_reniec
+MYSQL_PASSWORD=pass_reniec123
+MYSQL_ROOT_PASSWORD=root_pass123
+
+# Configuración de RabbitMQ
+RABBITMQ_USER=rabbit_user
+RABBITMQ_PASS=rabbit_pass

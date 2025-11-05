@@ -61,11 +61,12 @@ services:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     volumes:
       - ./data/mysql:/var/lib/mysql
+      # AÑADE ESTA LÍNEA:
+      - ./servicio-reniec-lp2/schema.sql:/docker-entrypoint-initdb.d/schema.sql
     networks:
       - shibasito-net
 
   # NODO 3: MIDDLEWARE RABBITMQ
-# NODO 3: MIDDLEWARE RABBITMQ
   rabbitmq:
     image: rabbitmq:4.0-management
     container_name: rabbitmq
@@ -77,6 +78,7 @@ services:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
     volumes:
+      - ./config/rabbitmq-definitions.json:/etc/rabbitmq/definitions.json
       - rabbitmq_data:/var/lib/rabbitmq/mnesia # <-- Esta línea es nueva
     networks:
       - shibasito-net
@@ -90,6 +92,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./data/prometheus:/prometheus 
     ports:
       - "9090:9090"
     networks:

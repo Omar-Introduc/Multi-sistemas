@@ -1,0 +1,65 @@
+{
+  "users": [
+    {
+      "name": "banco_user",
+      "password": "banco_password",
+      "tags": ""
+    },
+    {
+      "name": "shibasito_admin",
+      "password": "ShibasitoAdmin2025!@",
+      "tags": "administrator"
+    }
+  ],
+  "vhosts": [
+    {
+      "name": "/"
+    }
+  ],
+  "permissions": [
+    {
+      "user": "banco_user",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    },
+    {
+      "user": "shibasito_admin",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "bank_direct",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "bank.validate.loan",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "bank_direct",
+      "vhost": "/",
+      "destination": "bank.validate.loan",
+      "destination_type": "queue",
+      "routing_key": "bank.validate.loan",
+      "arguments": {}
+    }
+  ]
+}
