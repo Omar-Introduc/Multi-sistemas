@@ -17,7 +17,7 @@ CREATE TABLE prestamos (
     monto DECIMAL(15,2) NOT NULL,
     monto_pendiente DECIMAL(15,2) NOT NULL,
     tasa_interes DECIMAL(5,2) NOT NULL,
-    estado VARCHAR(10) CHECK (estado IN ('activo', 'pagado', 'vencido', 'cancelado')) DEFAULT 'activo',
+    estado VARCHAR(10) CHECK (estado IN ('activo', 'pagado', 'vencido', 'cancelado', 'pendiente', 'rechazado')) DEFAULT 'pendiente',
     fecha_solicitud DATE NOT NULL,
     fecha_vencimiento DATE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
