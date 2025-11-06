@@ -25,7 +25,7 @@ public class Prestamo {
     private BigDecimal tasaInteres;
 
     @Column(length = 10)
-    private String estado;
+    private String estado = "pendiente";
 
     @Column(name = "fecha_solicitud", nullable = false)
     @Temporal(TemporalType.DATE)
