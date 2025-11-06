@@ -5,6 +5,7 @@ from database import SessionLocal
 from crud import get_persona_by_dni
 
 def callback(ch, method, properties, body):
+    # ... (esta función no cambia) ...
     print(" [x] Received %r" % body)
     data = json.loads(body)
     dni = data.get("dni")
@@ -25,7 +26,16 @@ def callback(ch, method, properties, body):
 
 def main():
     rabbitmq_host = os.getenv("RABBITMQ_HOST", "rabbitmq")
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host=rabbitmq_host))
+    # AÑADE ESTAS LÍNEAS
+    username = os.getenv("RABBITMQ_DEFAULT_USER", "rabbit_user") # Usa el default de tu .env si no existe
+    password = os.getenv("RABBITMQ_DEFAULT_PASS", "rabbit_pass") # Usa el default de tu .env si no existe
+    credentials = pika.PlainCredentials(username, password)
+    
+    # MODIFICA ESTA LÍNEA
+    connection = pika.BlockingConnection(
+        pika.ConnectionParameters(host=rabbitmq_host, credentials=credentials)
+    )
+    
     channel = connection.channel()
 
     channel.queue_declare(queue='bank.validate.loan', durable=True)

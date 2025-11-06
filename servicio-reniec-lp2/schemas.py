@@ -27,5 +27,6 @@ class PersonaCreate(PersonaBase):
     pass
 
 class PersonaResponse(PersonaBase):
-    class Config:
-        orm_mode = True
+    # Pydantic v2: 'orm_mode' was renamed to 'from_attributes'
+    # Use model_config to set from_attributes for compatibility with ORM objects
+    model_config = {"from_attributes": True}
