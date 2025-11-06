@@ -11,6 +11,10 @@ scrape_configs:
     static_configs:
       - targets: ['servicio-banco-lp1:8080']
 
-  - job_name: 'servicio-reniec-lp2'
+  - job_name: 'servicio-reniec-lp2-api'
     static_configs:
       - targets: ['servicio-reniec-lp2:8000']
+
+  - job_name: 'servicio-reniec-lp2-consumer'
+    static_configs:
+      - targets: ['servicio-reniec-lp2:8001']
