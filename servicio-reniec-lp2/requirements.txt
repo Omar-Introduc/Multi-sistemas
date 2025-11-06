@@ -7,3 +7,4 @@ pika
 pytest
 cryptography # llamada moderna
 httpx
+prometheus-client
