@@ -70,3 +70,13 @@ test-all: test
 push:
 	@echo "Pushing images to Docker Hub..."
 	$(DOCKER_COMPOSE) push
+
+# Run the docker-run Maven profile which activates the io.fabric8 docker plugin.
+# This will attempt to start/stop containers and therefore requires access to
+# the Docker daemon. Run this on a host with Docker available. We mount the
+# host Docker socket into the Maven container so the plugin can control Docker.
+.PHONY: integration
+integration:
+	@echo "Running integration profile (docker-run). Requires Docker socket mounted."
+	docker run --rm -v $(PWD)/servicio-banco-lp1:/app -v "$$HOME/.m2":/root/.m2 \
+	  -v /var/run/docker.sock:/var/run/docker.sock -w /app $(MAVEN_OFFLINE_IMAGE) mvn -Pdocker-run verify
