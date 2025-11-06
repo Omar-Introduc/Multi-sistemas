@@ -45,6 +45,54 @@ def test_create_persona(client):
     data = response.json()
     assert data["dni"] == "12345678"
 
+def test_create_persona_duplicate_dni(client):
+    client.post(
+        "/personas/",
+        json={
+            "dni": "12345678",
+            "nombres": "Test",
+            "apellido_paterno": "User",
+            "apellido_materno": "One",
+            "fecha_nacimiento": "2000-01-01",
+            "sexo": "M",
+            "estado_civil": "soltero",
+            "lugar_nacimiento": "Lima",
+            "direccion_actual": "Lima"
+        },
+    )
+    response = client.post(
+        "/personas/",
+        json={
+            "dni": "12345678",
+            "nombres": "Test",
+            "apellido_paterno": "User",
+            "apellido_materno": "One",
+            "fecha_nacimiento": "2000-01-01",
+            "sexo": "M",
+            "estado_civil": "soltero",
+            "lugar_nacimiento": "Lima",
+            "direccion_actual": "Lima"
+        },
+    )
+    assert response.status_code == 400
+
+def test_create_persona_invalid_sexo(client):
+    response = client.post(
+        "/personas/",
+        json={
+            "dni": "12345678",
+            "nombres": "Test",
+            "apellido_paterno": "User",
+            "apellido_materno": "One",
+            "fecha_nacimiento": "2000-01-01",
+            "sexo": "X",
+            "estado_civil": "soltero",
+            "lugar_nacimiento": "Lima",
+            "direccion_actual": "Lima"
+        },
+    )
+    assert response.status_code == 422
+
 def test_read_persona(client):
     client.post(
         "/personas/",

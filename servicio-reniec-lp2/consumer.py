@@ -5,9 +5,14 @@ from database import SessionLocal
 from crud import get_persona_by_dni
 
 def callback(ch, method, properties, body):
-    # ... (esta función no cambia) ...
     print(" [x] Received %r" % body)
-    data = json.loads(body)
+    try:
+        data = json.loads(body)
+    except json.JSONDecodeError:
+        print(" [.] Malformed JSON received.")
+        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+        return
+
     dni = data.get("dni")
 
     db = SessionLocal()
@@ -15,10 +20,8 @@ def callback(ch, method, properties, body):
         persona = get_persona_by_dni(db, dni)
         if persona:
             print(f" [.] DNI {dni} is valid.")
-            # Here you would publish a response to another queue
         else:
             print(f" [.] DNI {dni} is not valid.")
-            # Here you would publish a response to another queue
     finally:
         db.close()
 
@@ -26,12 +29,10 @@ def callback(ch, method, properties, body):
 
 def main():
     rabbitmq_host = os.getenv("RABBITMQ_HOST", "rabbitmq")
-    # AÑADE ESTAS LÍNEAS
-    username = os.getenv("RABBITMQ_DEFAULT_USER", "rabbit_user") # Usa el default de tu .env si no existe
-    password = os.getenv("RABBITMQ_DEFAULT_PASS", "rabbit_pass") # Usa el default de tu .env si no existe
+    username = os.getenv("RABBITMQ_DEFAULT_USER", "rabbit_user")
+    password = os.getenv("RABBITMQ_DEFAULT_PASS", "rabbit_pass")
     credentials = pika.PlainCredentials(username, password)
     
-    # MODIFICA ESTA LÍNEA
     connection = pika.BlockingConnection(
         pika.ConnectionParameters(host=rabbitmq_host, credentials=credentials)
     )
