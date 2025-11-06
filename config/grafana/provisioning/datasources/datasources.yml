@@ -1,0 +1,25 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+  - name: PostgreSQL
+    type: postgres
+    access: proxy
+    url: postgres-db:5432
+    user: admin_banco
+    password: ${POSTGRES_PASSWORD}
+    database: db_banco
+    jsonData:
+      sslmode: 'disable'
+      postgresVersion: 1300
+  - name: MySQL
+    type: mysql
+    access: proxy
+    url: mysql-db:3306
+    user: admin_reniec
+    password: ${MYSQL_PASSWORD}
+    database: db_reniec

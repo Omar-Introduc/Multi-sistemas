@@ -28,6 +28,7 @@ public class PrestamoService {
     }
 
     public Prestamo createPrestamo(Prestamo prestamo) {
+        prestamo.setEstado("pendiente_validacion");
         String message = "{\"dni\": \"" + prestamo.getIdCliente() + "\"}";
         rabbitMQSenderService.send(message);
         return prestamoRepository.save(prestamo);
