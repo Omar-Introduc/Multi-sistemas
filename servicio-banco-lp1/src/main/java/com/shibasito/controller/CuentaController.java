@@ -18,6 +18,11 @@ public class CuentaController {
     @Autowired
     private CuentaService cuentaService;
 
+    @GetMapping("/health")
+    public ResponseEntity<String> healthCheck() {
+        return ResponseEntity.ok("OK");
+    }
+
     @GetMapping
     public List<CuentaDTO> getAllCuentas() {
         return cuentaService.getAllCuentas().stream().map(this::convertToDto).collect(Collectors.toList());

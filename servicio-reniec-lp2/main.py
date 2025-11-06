@@ -4,10 +4,14 @@ import crud
 import models
 import schemas
 from database import engine, get_db
+from contextlib import asynccontextmanager
 
-models.Base.metadata.create_all(bind=engine)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    models.Base.metadata.create_all(bind=engine)
+    yield
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 @app.post("/personas/", response_model=schemas.PersonaResponse)
 def create_persona(persona: schemas.PersonaCreate, db: Session = Depends(get_db)):

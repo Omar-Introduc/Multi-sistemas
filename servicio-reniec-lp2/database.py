@@ -3,6 +3,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 import os
+import sys
+
+if 'pytest' in sys.argv[0]:
+    os.environ['TESTING'] = 'True'
 
 if os.getenv("TESTING"):
     SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
