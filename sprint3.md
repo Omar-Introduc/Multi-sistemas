@@ -6,6 +6,8 @@
 
 ### **Issue S3I1: Tipos de Evento (Polimorfismo)**
 
+**Historia de Usuario:** Como desarrollador, quiero que el sistema de eventos pueda manejar diferentes tipos (historia vs. combate), para poder expandir el juego fácilmente.
+
 **Descripción Técnica Detallada:**
 
 *   **Objetivo:** Refactorizar `EventoDeJuego` para que sea una clase base que permita diferentes tipos de eventos, como historia y combate, utilizando herencia.
@@ -76,6 +78,8 @@
 
 ### **Issue S3I2: Gestor de Estados del Juego (UI)**
 
+**Historia de Usuario:** Como jugador, quiero que la UI cambie claramente entre el modo 'Historia' y el modo 'Combate', para no confundirme sobre qué está pasando.
+
 **Descripción Técnica Detallada:**
 
 *   **Archivo:** `Assets/Scripts/UI/UIManager.cs`
@@ -115,6 +119,8 @@
 
 ### **Issue S3I3: Prototipo de "Combate Falso"**
 
+**Historia de Usuario:** Como desarrollador, quiero una pantalla de combate de prueba con botones para "Ganar" o "Perder", para poder probar el flujo de transición sin necesidad de un sistema de combate completo.
+
 **Descripción Técnica Detallada:**
 
 *   **Escena:** `Assets/Scenes/GameScene.unity`
@@ -138,6 +144,8 @@
 ---
 
 ### **Issue S3I4: Flujo de Transición de Combate**
+
+**Historia de Usuario:** Como jugador, quiero que un evento de historia me lleve a una pantalla de combate y, al terminar, me devuelva a la historia, para que el flujo del juego sea fluido.
 
 **Descripción Técnica Detallada:**
 
