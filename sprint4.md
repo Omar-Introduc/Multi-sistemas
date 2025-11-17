@@ -6,6 +6,8 @@
 
 ### **Issue S4I1: Estructura de Datos (Oponentes y Equipo)**
 
+**Historia de Usuario:** Como jugador, quiero que los enemigos y mi equipo (armas/armaduras) tengan estadísticas claras, para poder tomar decisiones estratégicas sobre qué equipar.
+
 **Descripción Técnica Detallada:**
 
 *   **Objetivo:** Crear los `ScriptableObjects` que definirán las estadísticas y propiedades de los enemigos y el equipo del jugador.
@@ -61,6 +63,8 @@
 
 ### **Issue S4I2: Lógica del Bucle de Combate (ATB)**
 
+**Historia de Usuario:** Como jugador, quiero un sistema de combate donde la 'Velocidad' determine quién ataca (ATB), para que sea más dinámico y estratégico.
+
 **Descripción Técnica Detallada:**
 
 *   **Archivo Principal:** `Assets/Scripts/Core/CombatManager.cs`
@@ -115,6 +119,8 @@
 
 ### **Issue S4I3: Sistema de Estados (Buffs/Debuffs)**
 
+**Historia de Usuario:** Como jugador, quiero que mis armas y las de los enemigos puedan aplicar efectos (como 'Veneno' o 'Lento'), para añadir profundidad táctica al combate.
+
 **Descripción Técnica Detallada:**
 
 *   **Archivo Base:** `Assets/Scripts/Data/Combate/StatusEffect.cs`
@@ -140,6 +146,8 @@
 ---
 
 ### **Issue S4I4: Integración del Combate Real**
+
+**Historia de Usuario:** Como jugador, quiero una interfaz de combate clara que me muestre la vida y el turno de todos, para poder tomar decisiones informadas.
 
 **Descripción Técnica Detallada:**
 

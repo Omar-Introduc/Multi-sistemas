@@ -6,6 +6,8 @@
 
 ### **Issue S1I1: Estructura de Datos del Evento**
 
+**Historia de Usuario:** Como jugador, quiero que un evento de historia tenga texto y opciones, para poder entender qué está pasando y tomar una decisión.
+
 **Descripción Técnica Detallada:**
 
 *   **Archivo:** `Assets/Scripts/Data/EventoDeJuego.cs`
@@ -37,6 +39,8 @@
 
 ### **Issue S1I2: Estructura de Datos de la Opción**
 
+**Historia de Usuario:** Como desarrollador, quiero una estructura de datos dedicada para las opciones, para que cada opción pueda tener su propio texto y un enlace claro al siguiente evento.
+
 **Descripción Técnica Detallada:**
 
 *   **Archivo:** `Assets/Scripts/Data/OpcionDeJuego.cs`
@@ -64,6 +68,8 @@
 ---
 
 ### **Issue S1I3: Implementación del GameManager (Flujo)**
+
+**Historia de Usuario:** Como jugador, quiero que al hacer clic en una opción, la historia avance al siguiente evento, para que mi decisión tenga un resultado inmediato.
 
 **Descripción Técnica Detallada:**
 
@@ -113,6 +119,8 @@
 
 ### **Issue S1I4: Creación de UI Básica**
 
+**Historia de Usuario:** Como desarrollador, quiero una interfaz de usuario básica con un área de texto y botones, para poder presentar la historia y las opciones al jugador de forma clara.
+
 **Descripción Técnica Detallada:**
 
 *   **Escena:** `Assets/Scenes/GameScene.unity`
@@ -136,6 +144,8 @@
 ---
 
 ### **Issue S1I5: Contenido de Prueba (Demo)**
+
+**Historia de Usuario:** Como jugador, quiero poder navegar por una pequeña historia de 3 a 5 pasos, para confirmar que el bucle de juego principal funciona.
 
 **Descripción Técnica Detallada:**
 

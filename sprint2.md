@@ -6,6 +6,8 @@
 
 ### **Issue S2I1: Sistema de Atributos del Jugador**
 
+**Historia de Usuario:** Como jugador, quiero que mi personaje tenga atributos como 'Encanto' y 'Perspicacia', para definir mi estilo de juego.
+
 **Descripción Técnica Detallada:**
 
 *   **Archivos:**
@@ -67,6 +69,8 @@
 
 ### **Issue S2I2: Sistema de "Memoria" (Banderas/Misiones)**
 
+**Historia de Usuario:** Como jugador, quiero que el juego recuerde decisiones clave (como 'robo_al_mercader'), para que mis acciones tengan consecuencias a largo plazo.
+
 **Descripción Técnica Detallada:**
 
 *   **Archivo:** `Assets/Scripts/Core/WorldState.cs`
@@ -87,6 +91,8 @@
 ---
 
 ### **Issue S2I3: Lógica de Opciones Condicionales**
+
+**Historia de Usuario:** Como jugador, quiero ver opciones de diálogo que no puedo elegir (ej. [Encanto 10]), para entender que mis atributos importan y motivarme a mejorarlos.
 
 **Descripción Técnica Detallada:**
 
@@ -144,6 +150,8 @@
 ---
 
 ### **Issue S2I4: Lógica de Opciones con Consecuencia**
+
+**Historia de Usuario:** Como jugador, quiero que al elegir una opción (ej. 'Sobornar'), mi oro disminuya, para que las decisiones tengan un coste.
 
 **Descripción Técnica Detallada:**
 

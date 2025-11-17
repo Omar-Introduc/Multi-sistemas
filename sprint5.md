@@ -6,6 +6,8 @@
 
 ### **Issue S5I1: Sistema de XP y Niveles**
 
+**Historia de Usuario:** Como jugador, quiero ganar XP al ganar combates y completar eventos, para poder subir de nivel y gastar puntos en mis atributos.
+
 **Descripción Técnica Detallada:**
 
 *   **Objetivo:** Implementar la lógica para ganar experiencia (XP), subir de nivel y mejorar los atributos del jugador.
@@ -47,6 +49,8 @@
 
 ### **Issue S5I2: Sistema de Habilidades**
 
+**Historia de Usuario:** Como jugador, quiero desbloquear habilidades activas y pasivas, para personalizar mi estilo de combate y sentirme más poderoso.
+
 **Descripción Técnica Detallada:**
 
 *   **Objetivo:** Implementar un sistema flexible para habilidades activas y pasivas.
@@ -84,6 +88,8 @@
 
 ### **Issue S5I3: Sistema de Vidas y Muerte**
 
+**Historia de Usuario:** Como jugador, quiero tener un número de 'vidas', para que morir en un combate no signifique el fin inmediato de mi partida, dándome una segunda oportunidad.
+
 **Descripción Técnica Detallada:**
 
 *   **Objetivo:** Implementar el sistema de "vidas" del pilar 6, donde la muerte en combate no significa el fin de la partida, sino la pérdida de una oportunidad.
@@ -110,6 +116,8 @@
 ---
 
 ### **Issue S5I4: Pantalla de "Game Over"**
+
+**Historia de Usuario:** Como jugador, quiero ver una pantalla de 'Game Over' cuando pierdo mi última vida, para entender claramente que mi 'Run' ha terminado.
 
 **Descripción Técnica Detallada:**
 

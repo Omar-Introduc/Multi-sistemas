@@ -6,6 +6,8 @@
 
 ### **Issue S6I1: Sistema de Moneda Persistente ("Ecos")**
 
+**Historia de Usuario:** Como jugador, quiero ganar una 'moneda persistente' (Ecos) en cada partida, para sentir que progresé algo incluso si muero.
+
 **Descripción Técnica Detallada:**
 
 *   **Objetivo:** Diseñar e implementar la "meta-moneda" que el jugador conserva después de una "Run" para comprar mejoras permanentes.
@@ -37,6 +39,8 @@
 ---
 
 ### **Issue S6I2: UI de Meta-Progreso (El Refugio)**
+
+**Historia de Usuario:** Como jugador, quiero poder gastar mis 'Ecos' en un menú principal para desbloquear mejoras permanentes (como nuevas clases o más vidas), para que mis futuras partidas sean diferentes y más fáciles.
 
 **Descripción Técnica Detallada:**
 
@@ -72,6 +76,8 @@
 ---
 
 ### **Issue S6I3: Sistema de Guardado/Carga (Persistencia)**
+
+**Historia de Usuario:** Como jugador, quiero que mis desbloqueos y 'Ecos' se guarden automáticamente, para poder cerrar el juego y continuar mi progreso más tarde.
 
 **Descripción Técnica Detallada:**
 
@@ -141,6 +147,8 @@
 ---
 
 ### **Issue S6I4: Integración de Contenido (El Juego Real)**
+
+**Historia de Usuario:** Como desarrollador, quiero un flujo de trabajo claro y eficiente para crear y conectar eventos de historia, combate y recompensas, para poder construir el juego a gran escala.
 
 **Descripción Técnica Detallada:**
 
