@@ -213,3 +213,41 @@
     5.  Verificar que la UI cambia de `panelHistoria` a `panelCombate`.
     6.  Hacer clic en "Ganar (Prueba)".
     7.  Verificar que la UI vuelve a ser la de historia y que se ha cargado el `eventoVictoria` correcto.
+
+---
+
+### **Issue S3I5: Implementación del Director de Eventos**
+
+**Historia de Usuario:** Como desarrollador, quiero un sistema central que gestione y distribuya eventos aleatorios, para crear una experiencia de juego dinámica y no repetitiva.
+
+**Descripción Técnica Detallada:**
+
+*   **Archivo:** `Assets/Scripts/Core/DirectorDeEventos.cs`
+*   **Tipo:** `MonoBehaviour` (Singleton).
+*   **Propósito:** Actuar como el "repartidor de cartas" del juego. Será responsable de cargar, categorizar y entregar eventos a pedido del `GameManager`, asegurando que el flujo de juego sea variado y consciente del estado del mundo.
+*   **Campos:**
+    *   `public static DirectorDeEventos Instance { get; private set; }`
+    *   `private Dictionary<string, List<EventoDeJuego>> mazosDeEventos = new Dictionary<string, List<EventoDeJuego>>();`
+        *   **Uso:** Almacenará todos los eventos del juego, agrupados por su `categoriaDeEvento`. La clave del diccionario será la categoría (ej. "Bosque", "Pueblo") y el valor será una lista de los eventos pertenecientes a esa categoría.
+*   **Métodos:**
+    *   `void Awake()`:
+        *   Implementación del Singleton.
+        *   Llamada a `CargarYOrganizarEventos()`.
+    *   `private void CargarYOrganizarEventos()`:
+        *   **Lógica:**
+            1.  Utiliza `Resources.LoadAll<EventoDeJuego>("Eventos")` para cargar todos los `ScriptableObjects` de tipo `EventoDeJuego` desde una carpeta `Resources/Eventos`.
+            2.  Itera sobre cada evento cargado.
+            3.  Para cada evento, se necesita una forma de determinar su categoría. **Propuesta:** Añadir un campo `public string categoria;` a la clase base `EventoDeJuego`.
+            4.  Añade el evento a la lista correspondiente en el diccionario `mazosDeEventos`. Si la categoría no existe, la crea.
+    *   `public EventoDeJuego ObtenerSiguienteEvento(string categoria)`:
+        *   **Lógica:**
+            1.  Comprueba si la categoría solicitada existe en `mazosDeEventos` y si la lista no está vacía.
+            2.  Selecciona un evento aleatorio de la lista (`mazosDeEventos[categoria]`).
+            3.  **Importante (No Repetición):** Elimina el evento seleccionado de la lista para que no vuelva a aparecer en la misma partida.
+            4.  Devuelve el evento seleccionado.
+            5.  Si la categoría no existe o está vacía, devuelve `null` y muestra un `Debug.LogWarning`.
+*   **Integración con el WorldState (Visión a Futuro):**
+    *   El método `ObtenerSiguienteEvento` se volverá más inteligente. Antes de simplemente robar un evento aleatorio "p", revisará el `WorldState`.
+    *   Si hay misiones activas (ej. `Mision_Principal = Estado 2`), buscará y añadirá al "mazo" temporal los siguientes eventos fijos de esas misiones (ej. `Mision_Principal_Estado_3`) para que puedan ser seleccionados. Esto permite el "entrecruzado" de historias.
+*   **Diagrama de Flujo:**
+    `GameManager pide evento("Bosque")` -> `DirectorDeEventos.ObtenerSiguienteEvento("Bosque")` -> `Director Revisa WorldState` -> `Director Construye Mazo Temporal` -> `Director Roba Carta (Evento)` -> `Director Descarta Carta` -> `Director Devuelve Evento a GameManager`

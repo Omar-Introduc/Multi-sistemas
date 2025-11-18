@@ -37,20 +37,26 @@
 
 ---
 
-### **Issue S1I2: Estructura de Datos de la Opción**
+### **Issue S1I2: Estructura de Datos de la Opción (Modificado)**
 
-**Historia de Usuario:** Como desarrollador, quiero una estructura de datos dedicada para las opciones, para que cada opción pueda tener su propio texto y un enlace claro al siguiente evento.
+**Historia de Usuario:** Como desarrollador, quiero que una opción pueda llevar a un evento específico o a un evento aleatorio de una categoría, para soportar tanto historias lineales como exploración.
 
 **Descripción Técnica Detallada:**
 
 *   **Archivo:** `Assets/Scripts/Data/OpcionDeJuego.cs`
-*   **Tipo:** `Clase serializable` (no `MonoBehaviour` ni `ScriptableObject`).
-*   **Propósito:** Representará una única elección disponible dentro de un `EventoDeJuego`. Al ser una clase serializable, sus instancias podrán ser editadas directamente en el Inspector de Unity, dentro de la lista de opciones del `EventoDeJuego` que la contiene.
+*   **Tipo:** `Clase serializable`.
+*   **Propósito:** Representará una única elección, ahora con capacidad para dos tipos de transiciones de historia.
 *   **Campos:**
+    *   `public enum TipoDeTransicion { Fija, Aleatoria }`
+        *   **Uso:** Define si la opción lleva a un evento predefinido o a uno aleatorio de una categoría.
     *   `public string textoDeOpcion;`
-        *   **Uso:** El texto que se mostrará en el botón de la UI correspondiente a esta opción.
+        *   **Uso:** El texto que se mostrará en el botón de la UI.
+    *   `public TipoDeTransicion tipoDeTransicion = TipoDeTransicion.Fija;`
+        *   **Uso:** El campo que determina el comportamiento de la transición. Por defecto será `Fija` para mantener la compatibilidad con el diseño original.
     *   `public EventoDeJuego siguienteEvento;`
-        *   **Uso:** Referencia directa al `EventoDeJuego` que se cargará si el jugador elige esta opción. Esto crea el enlace entre nodos de la historia.
+        *   **Uso:** **Solo si `tipoDeTransicion` es `Fija`**. Es la referencia directa al siguiente evento en una secuencia lineal.
+    *   `public string categoriaDeEvento;`
+        *   **Uso:** **Solo si `tipoDeTransicion` es `Aleatoria`**. Es una clave (string) que identifica un "mazo" de eventos (ej. "Bosque", "Cueva", "SubHistoria_Mercader"). El `DirectorDeEventos` (ver Sprint 3) usará esta clave para seleccionar un evento aleatorio.
 *   **Sugerencia de Implementación:**
     ```csharp
     // OpcionDeJuego.cs
@@ -59,11 +65,19 @@
     [System.Serializable]
     public class OpcionDeJuego
     {
+        public enum TipoDeTransicion { Fija, Aleatoria }
+
         public string textoDeOpcion;
+        public TipoDeTransicion tipoDeTransicion = TipoDeTransicion.Fija;
+
+        // Para transiciones Fijas
         public EventoDeJuego siguienteEvento;
+
+        // Para transiciones Aleatorias
+        public string categoriaDeEvento;
     }
     ```
-    *   **Nota:** El atributo `[System.Serializable]` es crucial para que Unity pueda mostrar y guardar los datos de esta clase en el Inspector.
+    *   **Nota:** Se podría usar un `CustomEditor` en Unity para mostrar/ocultar los campos `siguienteEvento` o `categoriaDeEvento` según el valor de `tipoDeTransicion`, mejorando la experiencia del diseñador.
 
 ---
 
@@ -107,13 +121,20 @@
             4.  Para cada botón, si hay una opción correspondiente en `eventoActual.opciones`, lo activa, le asigna el texto (`opcion.textoDeOpcion`) y configura su `onClick` listener. Si no hay opción, desactiva el botón.
             *   **Importante:** Limpiar los listeners anteriores antes de añadir uno nuevo para evitar llamadas múltiples (`boton.onClick.RemoveAllListeners();`).
     *   `public void ElegirOpcion(int indiceOpcion)`:
-        *   **Lógica:**
+        *   **Lógica (Actualizada):**
             1.  Valida que el índice esté dentro del rango de `eventoActual.opciones`.
-            2.  Obtiene la `OpcionDeJuego` seleccionada.
-            3.  Si `siguienteEvento` no es nulo, llama a `CargarEvento(opcion.siguienteEvento)`.
-            4.  Si es nulo, podría ser el final de una rama (por ahora no hace nada, en el futuro podría mostrar un mensaje de "Continuará...").
-*   **Diagrama de Flujo Lógico:**
-    `Start` -> `CargarEvento(eventoInicial)` -> `UI Muestra Historia y Opciones` -> `Jugador Clickea Botón` -> `Botón Llama a ElegirOpcion(indice)` -> `GameManager Procesa Elección` -> `CargarEvento(siguienteEvento)` -> (Bucle)
+            2.  Obtiene la `OpcionDeJuego` seleccionada (`opcionElegida`).
+            3.  **Comprueba el tipo de transición:**
+                *   **Si `opcionElegida.tipoDeTransicion` es `Fija`:**
+                    *   Llama a `CargarEvento(opcionElegida.siguienteEvento)`.
+                *   **Si `opcionElegida.tipoDeTransicion` es `Aleatoria`:**
+                    *   Llama al `DirectorDeEventos` para obtener el próximo evento: `EventoDeJuego proximoEvento = DirectorDeEventos.Instance.ObtenerSiguienteEvento(opcionElegida.categoriaDeEvento);`
+                    *   Llama a `CargarEvento(proximoEvento)`.
+            4.  Si el evento resultante es nulo (porque no hay más eventos en el mazo o no se asignó un `siguienteEvento`), se maneja el final de la rama.
+*   **Diagrama de Flujo Lógico (Actualizado):**
+    `Jugador Elige Opción` -> `GameManager.ElegirOpcion(indice)` -> `¿Transición Fija o Aleatoria?`
+    *   **Fija:** `CargarEvento(opcion.siguienteEvento)` -> `UI Muestra Evento`
+    *   **Aleatoria:** `DirectorDeEventos.ObtenerSiguienteEvento(categoria)` -> `GameManager recibe Evento Aleatorio` -> `CargarEvento(eventoAleatorio)` -> `UI Muestra Evento`
 
 ---
 
