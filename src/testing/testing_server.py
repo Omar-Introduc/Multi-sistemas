@@ -11,6 +11,7 @@ import numpy as np
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 from src.common.socket_comm import SocketServer, SocketClient, send_msg, recv_msg
 from src.training.model import AIModel
+from src.common.performance import time_execution, monitor
 
 def load_config():
     try:
@@ -98,16 +99,20 @@ class TestingServer(SocketServer):
                         
                         # Inference
                         if self.model.is_trained:
-                            prediction = self.model.predict(frame)
-                            print(f"Frame {frame_id}: Detected {prediction}")
-                            
-                            # If interesting detection (not "Unknown" or specific target), alert
-                            if prediction != "Unknown":
-                                self._broadcast_alert(prediction, frame_id, b64_frame)
+                            self._run_inference(frame, frame_id, b64_frame)
                         else:
                             print("Model not trained yet, skipping inference")
                 
                 time.sleep(0.1) # FPS control
+
+    @time_execution
+    def _run_inference(self, frame, frame_id, b64_frame):
+        prediction = self.model.predict(frame)
+        print(f"Frame {frame_id}: Detected {prediction}")
+        
+        # If interesting detection (not "Unknown" or specific target), alert
+        if prediction != "Unknown":
+            self._broadcast_alert(prediction, frame_id, b64_frame)
                 
             except Exception as e:
                 print(f"Error in process loop: {e}")
