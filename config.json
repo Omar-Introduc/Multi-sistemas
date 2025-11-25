@@ -2,7 +2,7 @@
     "video_server": {
         "host": "0.0.0.0",
         "port": 5001,
-        "source": 0
+        "source": "../../Download.mp4"
     },
     "training_server": {
         "host": "0.0.0.0",

@@ -36,6 +36,25 @@ class TestingServer(SocketServer):
         self.model = AIModel()
         self.model_path = 'downloaded_model.pkl'
         
+        # Try to load local model immediately
+        # Check current dir, root, and sibling training dir
+        possible_paths = [
+            'model.pkl', 
+            '../training/model.pkl',
+            '../../src/training/model.pkl',
+            self.model_path
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                print(f"Found local model at {path}, loading...")
+                try:
+                    self.model.load(path)
+                    if self.model.is_trained:
+                        break
+                except Exception as e:
+                    print(f"Failed to load {path}: {e}")
+        
         self.video_client = None
         self.training_client = None
         
@@ -70,6 +89,9 @@ class TestingServer(SocketServer):
                         self.model.load(self.model_path)
                         print("Model updated successfully")
                 client.close()
+            except ConnectionRefusedError:
+                # Expected if Training Server is offline (Testing Only Mode)
+                pass 
             except Exception as e:
                 print(f"Error updating model: {e}")
             

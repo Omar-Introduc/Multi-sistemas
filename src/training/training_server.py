@@ -25,17 +25,6 @@ class TrainingServer(SocketServer):
         host = config.get('host', '0.0.0.0')
         port = config.get('port', 5002)
         model_path = config.get('model_path', 'model.pkl')
-        
-        super().__init__(host, port)
-        self.model = AIModel()
-        self.model_path = model_path
-        
-        # Worker Configuration (Hardcoded for demo, could be in config.json)
-        self.workers = [
-            ('127.0.0.1', 6000),
-            ('127.0.0.1', 6001),
-            ('127.0.0.1', 6002)
-        ]
 
     def _distribute_training(self, dataset):
         """
@@ -106,10 +95,17 @@ class TrainingServer(SocketServer):
             
         print(f"Aggregation complete. Received {len(aggregated_features)} feature vectors.")
         
-        # Update Local Model
-        self.model.model_data['features'] = [np.array(f, dtype=np.float32) for f in aggregated_features]
-        self.model.model_data['labels'] = aggregated_labels
-        self.model.is_trained = True
+        # Update Local Model (Accumulate) with Lock
+        with self.model_lock:
+            if not self.model.is_trained:
+                 self.model.model_data['features'] = [np.array(f, dtype=np.float32) for f in aggregated_features]
+                 self.model.model_data['labels'] = aggregated_labels
+            else:
+                 print(f"Appending {len(aggregated_features)} new samples to existing model...")
+                 self.model.model_data['features'].extend([np.array(f, dtype=np.float32) for f in aggregated_features])
+                 self.model.model_data['labels'].extend(aggregated_labels)
+            self.model.is_trained = True
+            self.model.save(self.model_path) # Save immediately after update inside lock
 
     def handle_client(self, client_sock):
         print("Training Client Connected")
@@ -126,7 +122,8 @@ class TrainingServer(SocketServer):
                     if data:
                         print(f"Received dataset with {len(data)} samples")
                         self._distribute_training(data)
-                        self.model.save(self.model_path)
+                        self._distribute_training(data)
+                        # Save is now handled inside _distribute_training with lock
                         send_msg(client_sock, 'TRAIN_COMPLETE', {'status': 'success'})
                     else:
                         send_msg(client_sock, 'ERROR', {'message': 'Empty dataset'})

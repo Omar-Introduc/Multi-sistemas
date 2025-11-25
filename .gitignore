@@ -5,7 +5,7 @@ __pycache__/
 *.pyd
 
 # Environments
-venv/
+.venv/
 env/
 .env
 
@@ -23,3 +23,5 @@ downloaded_model.pkl
 captured_alerts/
 datasets/
 *.log
+training_history.json
+*.png
