@@ -5,7 +5,7 @@ import os
 def setup_dataset():
     print("Downloading dataset from Kaggle...")
     # Download latest version
-    path = kagglehub.dataset_download("muniryadi/cat-vs-rabbit")
+    path = kagglehub.dataset_download("alessiocorrado99/animals10")
     print("Path to dataset files:", path)
 
     # Target directory
@@ -15,49 +15,56 @@ def setup_dataset():
 
     # The dataset structure usually is:
     # path/
-    #   cat/
-    #   rabbit/
-    # Or sometimes path/train/cat... let's inspect or assume simple structure based on description.
-    # We will walk and find folders named 'cat' and 'rabbit' (or similar) and move them.
+    #   raw-img/
+    #     cat/
+    #     dog/
+    #     ...
+    # We will walk and find the animal folders and move them.
 
     print("Organizing files...")
     
     # Map source folder names to our target names (Spanish)
-    # Adjust based on actual dataset folder names. 
-    # Assuming dataset has "cat" and "rabbit" folders.
+    # Adjust based on actual dataset folder names.
     mappings = {
-        "cat": "gatos",
-        "rabbit": "conejos" 
+        "cane": "perro",
+        "gatto": "gato",
+        "ragno": "araña",
+        "gallina": "pollo",
+        "scoiattolo": "ardilla",
+        "pecora": "oveja",
+        "cavallo": "caballo",
+        "mucca": "vaca",
+        "elefante": "elefante",
+        "farfalla": "mariposa"
     }
 
-    for root, dirs, files in os.walk(path):
-        for dir_name in dirs:
-            lower_name = dir_name.lower()
-            target_name = None
-            
-            if "cat" in lower_name:
-                target_name = "gatos"
-            elif "rabbit" in lower_name:
-                target_name = "conejos"
-            
-            if target_name:
-                source_dir = os.path.join(root, dir_name)
-                target_dir = os.path.join(base_target, target_name)
-                
-                print(f"Copying {source_dir} to {target_dir}...")
-                
-                if os.path.exists(target_dir):
-                    print(f"Target {target_dir} exists, merging...")
-                else:
-                    os.makedirs(target_dir)
+    # The images are in a subfolder called "raw-img"
+    source_base_dir = os.path.join(path, "raw-img")
 
-                # Copy files
-                count = 0
-                for img in os.listdir(source_dir):
-                    if img.lower().endswith(('.png', '.jpg', '.jpeg')):
-                        shutil.copy2(os.path.join(source_dir, img), os.path.join(target_dir, img))
-                        count += 1
-                print(f"Copied {count} images to {target_name}")
+    for dir_name in os.listdir(source_base_dir):
+        lower_name = dir_name.lower()
+
+        # some folders are not animals
+        if lower_name in mappings:
+            target_name = mappings[lower_name]
+
+            source_dir = os.path.join(source_base_dir, dir_name)
+            target_dir = os.path.join(base_target, target_name)
+            
+            print(f"Copying {source_dir} to {target_dir}...")
+            
+            if os.path.exists(target_dir):
+                print(f"Target {target_dir} exists, merging...")
+            else:
+                os.makedirs(target_dir)
+
+            # Copy files
+            count = 0
+            for img in os.listdir(source_dir):
+                if img.lower().endswith(('.png', '.jpg', '.jpeg')):
+                    shutil.copy2(os.path.join(source_dir, img), os.path.join(target_dir, img))
+                    count += 1
+            print(f"Copied {count} images to {target_name}")
 
     print("Dataset setup complete.")
 

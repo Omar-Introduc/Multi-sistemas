@@ -8,12 +8,13 @@ import math
 class AIModel:
     def __init__(self):
         self.model_data = {
-            'features': [],
-            'labels': []
+            'features': None,
+            'labels': None,
+            'label_map': None
         }
+        self.knn = cv2.ml.KNearest_create()
         self.is_trained = False
         # HOG Descriptor initialization
-        # WinSize, BlockSize, BlockStride, CellSize, NBins
         self.hog = cv2.HOGDescriptor((64, 128), (16, 16), (8, 8), (8, 8), 9)
 
     def _extract_features(self, image):
@@ -56,64 +57,62 @@ class AIModel:
 
         return image
 
-    def train(self, dataset):
+    def train(self, dataset_generator):
         """
-        Train the model (KNN style: store features).
-        dataset: List of tuples (image_data, label)
-        image_data: can be raw bytes or numpy array
+        Train the model using OpenCV's KNearest.
+        dataset_generator: A generator that yields batches of (image_data, label)
         """
-        print(f"Starting training with {len(dataset)} samples...")
+        print("Starting training...")
         
         features_list = []
         labels_list = []
         
-        for i, (img_data, label) in enumerate(dataset):
-            # Convert to numpy array if needed, ensuring it's a color image
-            if isinstance(img_data, bytes):
-                nparr = np.frombuffer(img_data, np.uint8)
-                img_color = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            elif isinstance(img_data, np.ndarray):
-                if len(img_data.shape) == 3:
+        for batch in dataset_generator:
+            print(f"Processing batch of {len(batch)} samples...")
+            for i, (img_data, label) in enumerate(batch):
+                if isinstance(img_data, bytes):
+                    nparr = np.frombuffer(img_data, np.uint8)
+                    img_color = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                elif isinstance(img_data, np.ndarray):
                     img_color = img_data
-                else: # Grayscale
-                    img_color = cv2.cvtColor(img_data, cv2.COLOR_GRAY2BGR)
-            else:
-                continue
+                else:
+                    continue
 
-            if img_color is None:
-                continue
+                if img_color is None:
+                    continue
 
-            # 1. Process the original image
-            img_gray = cv2.cvtColor(img_color, cv2.COLOR_BGR2GRAY)
-            features = self._extract_features(img_gray)
-            if features is not None:
-                features_list.append(features)
-                labels_list.append(label)
-
-            # 2. Process augmented versions
-            num_augmentations = 4  # Creates 4 extra images
-            for _ in range(num_augmentations):
-                augmented_img_color = self._augment_image(img_color.copy())
-                augmented_img_gray = cv2.cvtColor(augmented_img_color, cv2.COLOR_BGR2GRAY)
-
-                features = self._extract_features(augmented_img_gray)
+                img_gray = cv2.cvtColor(img_color, cv2.COLOR_BGR2GRAY)
+                features = self._extract_features(img_gray)
                 if features is not None:
                     features_list.append(features)
                     labels_list.append(label)
-        
-        self.model_data['features'] = features_list
+
+                num_augmentations = 1  # Reduced from 4 to save memory
+                for _ in range(num_augmentations):
+                    augmented_img_color = self._augment_image(img_color.copy())
+                    augmented_img_gray = cv2.cvtColor(augmented_img_color, cv2.COLOR_BGR2GRAY)
+                    features = self._extract_features(augmented_img_gray)
+                    if features is not None:
+                        features_list.append(features)
+                        labels_list.append(label)
+
+        unique_labels = sorted(list(set(labels_list)))
+        self.model_data['label_map'] = {label: i for i, label in enumerate(unique_labels)}
+        self.model_data['features'] = np.array(features_list, dtype=np.float32)
         self.model_data['labels'] = labels_list
+        numerical_labels = np.array([self.model_data['label_map'][l] for l in labels_list], dtype=np.float32)
+
+        self.knn.train(self.model_data['features'], cv2.ml.ROW_SAMPLE, numerical_labels)
         self.is_trained = True
-        print(f"Training completed. Stored {len(features_list)} feature vectors.")
+        print(f"Training completed. Model is trained with {len(features_list)} feature vectors.")
 
     def predict(self, image_data, k=3):
         """
-        Predict class using KNN.
+        Predict class using the trained KNN model.
         """
         if not self.is_trained:
             return "Unknown"
-            
-        # Prepare input image
+
         if isinstance(image_data, bytes):
             nparr = np.frombuffer(image_data, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
@@ -132,55 +131,48 @@ class AIModel:
         if query_features is None:
             return "Unknown"
 
-        # KNN Logic: Find k nearest neighbors
-        distances = []
-        for i, features in enumerate(self.model_data['features']):
-            # Euclidean distance
-            dist = np.linalg.norm(query_features - features)
-            distances.append((dist, self.model_data['labels'][i]))
+        query_features = query_features.reshape(1, -1).astype(np.float32)
+        ret, results, neighbours, dist = self.knn.findNearest(query_features, k)
         
-        # Sort by distance
-        distances.sort(key=lambda x: x[0])
+        numerical_label = int(results[0][0])
         
-        # Get top k
-        k_nearest = distances[:k]
+        for label, index in self.model_data['label_map'].items():
+            if index == numerical_label:
+                return label
         
-        if not k_nearest:
-            return "Unknown"
-            
-        # Vote
-        votes = {}
-        for d, label in k_nearest:
-            votes[label] = votes.get(label, 0) + 1
-            
-        # Get winner
-        winner = max(votes, key=votes.get)
-        
-        # Optional: Confidence threshold based on distance?
-        # For now, just return winner
-        return winner
+        return "Unknown"
 
     def save(self, path):
         with open(path, 'wb') as f:
-            pickle.dump(self.model_data, f)
-        print(f"Model saved to {path}")
+            pickle.dump({
+                'features': self.model_data['features'],
+                'labels': self.model_data['labels'],
+                'label_map': self.model_data['label_map']
+            }, f)
+        print(f"Model data saved to {path}")
 
     def load(self, path):
         if os.path.exists(path):
             try:
                 with open(path, 'rb') as f:
-                    self.model_data = pickle.load(f)
-                # Check if valid model
-                if isinstance(self.model_data, dict) and self.model_data.get('features'):
+                    saved_data = pickle.load(f)
+
+                self.model_data['features'] = saved_data.get('features')
+                self.model_data['labels'] = saved_data.get('labels')
+                self.model_data['label_map'] = saved_data.get('label_map')
+
+                if self.model_data['features'] is not None and self.model_data['labels'] is not None and self.model_data['label_map'] is not None:
+                    numerical_labels = np.array([self.model_data['label_map'][l] for l in self.model_data['labels']], dtype=np.float32)
+                    self.knn.train(self.model_data['features'], cv2.ml.ROW_SAMPLE, numerical_labels)
                     self.is_trained = True
-                    print(f"Model loaded from {path} with {len(self.model_data['features'])} samples")
+                    print(f"Model loaded from {path} and retrained with {len(self.model_data['features'])} samples")
                 else:
-                    self.model_data = {'features': [], 'labels': []} # Reset
+                    self.model_data = {'features': None, 'labels': None, 'label_map': None}
                     self.is_trained = False
                     print("Loaded invalid or empty model, reset.")
             except (pickle.UnpicklingError, EOFError, KeyError) as e:
                 print(f"Error loading model file {path}: {e}. Resetting model.")
-                self.model_data = {'features': [], 'labels': []} # Reset
+                self.model_data = {'features': None, 'labels': None, 'label_map': None}
                 self.is_trained = False
         else:
             print(f"Model file {path} not found")
