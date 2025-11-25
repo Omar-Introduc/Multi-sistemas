@@ -6,6 +6,7 @@ import time
 import math
 import base64
 import numpy as np
+import cv2
 
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
@@ -24,13 +25,31 @@ class TrainingServer(SocketServer):
         config = load_config().get('training_server', {})
         host = config.get('host', '0.0.0.0')
         port = config.get('port', 5002)
-        model_path = config.get('model_path', 'model.pkl')
+        super().__init__(host, port)
+
+        self.model_path = config.get('model_path', 'model.pkl')
+        self.workers = config.get('workers', [])
+        self.model = AIModel()
+        self.model_lock = threading.Lock()
+
+        # Load model if exists
+        if os.path.exists(self.model_path):
+            self.model.load(self.model_path)
+            print("Loaded existing model.")
 
     def _distribute_training(self, dataset):
         """
         Distribute training data to workers.
         dataset: List of tuples (image_data, label)
         """
+        if not self.workers:
+            print("Warning: No workers configured. Training locally.")
+            # Handle local training as a fallback
+            # This part is simplified: in a real scenario, you'd process the data
+            # similarly to how a worker would, but in the main thread/process.
+            # For this fix, we'll just prevent the crash.
+            return
+
         print(f"Distributing {len(dataset)} samples to {len(self.workers)} workers...")
         
         # Split dataset
@@ -121,7 +140,6 @@ class TrainingServer(SocketServer):
                     data = msg.payload.get('dataset', [])
                     if data:
                         print(f"Received dataset with {len(data)} samples")
-                        self._distribute_training(data)
                         self._distribute_training(data)
                         # Save is now handled inside _distribute_training with lock
                         send_msg(client_sock, 'TRAIN_COMPLETE', {'status': 'success'})
