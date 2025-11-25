@@ -7,10 +7,23 @@ import json
 
 # Add project root to path to import common modules
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-from src.common.socket_comm import SocketServer, send_msg
+from src.common.socket_comm import SocketServer, send_msg, recv_msg
+
+def load_config():
+    try:
+        with open('../../config.json', 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print("Config file not found, using defaults")
+        return {}
 
 class VideoServer(SocketServer):
-    def __init__(self, host='0.0.0.0', port=5001, video_source=0):
+    def __init__(self):
+        config = load_config().get('video_server', {})
+        host = config.get('host', '0.0.0.0')
+        port = config.get('port', 5001)
+        video_source = config.get('source', 0)
+        
         super().__init__(host, port)
         self.video_source = video_source
         self.cap = None
@@ -19,37 +32,48 @@ class VideoServer(SocketServer):
         self.frame_count = 0
 
     def start_capture(self):
-        # Open video source (RTSP URL or Camera ID)
-        self.cap = cv2.VideoCapture(self.video_source)
-        if not self.cap.isOpened():
-            print(f"Error: Could not open video source {self.video_source}")
-            return
-
-        print(f"Video capture started on source {self.video_source}")
+        print(f"Starting capture thread for source: {self.video_source}")
         capture_thread = threading.Thread(target=self._capture_loop)
         capture_thread.daemon = True
         capture_thread.start()
 
     def _capture_loop(self):
-        while self.running and self.cap.isOpened():
+        print(f"Initializing capture in thread...")
+        self.cap = cv2.VideoCapture(self.video_source)
+        
+        if not self.cap.isOpened():
+             print(f"Error: Could not open video source {self.video_source} in thread.")
+             return
+
+        print(f"Capture opened. Backend: {self.cap.getBackendName()}")
+        
+        while self.running:
             ret, frame = self.cap.read()
             if ret:
                 with self.lock:
                     self.current_frame = frame
                     self.frame_count += 1
+                # If reading from file, limit speed to not consume 100% CPU
+                if isinstance(self.video_source, str):
+                    time.sleep(1/30) 
             else:
-                print("Failed to read frame")
-                time.sleep(1)
+                # If it's a file and we reached the end, loop it
+                if isinstance(self.video_source, str) and os.path.exists(self.video_source):
+                    print("End of video file, restarting...")
+                    self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                else:
+                    print("Failed to read frame (stream ended or error)")
+                    time.sleep(1)
+                    # Try to reconnect if it's a stream
+                    if not self.cap.isOpened():
+                         self.cap.release()
+                         self.cap = cv2.VideoCapture(self.video_source)
 
     def handle_client(self, client_sock):
         print("Video Client Connected")
         try:
             while True:
-                msg = self.receive_from_client(client_sock) # Helper needed or use recv_msg directly
-                # Since recv_msg is standalone in socket_comm, we need to import it or wrap it.
-                # Let's assume we use the standalone recv_msg for now.
-                from src.common.socket_comm import recv_msg
-                
+                # Use recv_msg from common module
                 msg = recv_msg(client_sock)
                 if not msg:
                     break
@@ -62,12 +86,6 @@ class VideoServer(SocketServer):
                         # Encode frame to JPEG
                         _, buffer = cv2.imencode('.jpg', frame)
                         jpg_as_text = buffer.tobytes()
-                        # Send frame
-                        # We might need a specific message type for binary data or base64 it.
-                        # For efficiency, let's send raw bytes if possible, but our SocketMessage uses JSON.
-                        # Let's base64 encode for the JSON protocol for now to keep it simple, 
-                        # or send a "FRAME_METADATA" then raw bytes.
-                        # Given the constraints, let's use base64 in JSON for simplicity unless performance is hit.
                         import base64
                         b64_frame = base64.b64encode(jpg_as_text).decode('utf-8')
                         send_msg(client_sock, 'FRAME_RESPONSE', {'frame': b64_frame, 'id': self.frame_count})
@@ -80,17 +98,18 @@ class VideoServer(SocketServer):
             client_sock.close()
 
 if __name__ == "__main__":
-    # Example usage: python video_server.py <rtsp_url_or_id>
-    source = 0
+    # Usage: python video_server.py [source]
+    # Source from args overrides config
+    server = VideoServer()
+    
     if len(sys.argv) > 1:
         source = sys.argv[1]
-        # Try to convert to int if it's a number (camera index)
         try:
             source = int(source)
         except ValueError:
-            pass 
+            pass
+        server.video_source = source
 
-    server = VideoServer(video_source=source)
     server.start()
     server.start_capture()
     

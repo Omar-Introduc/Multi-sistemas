@@ -9,8 +9,19 @@ import threading
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 from src.common.socket_comm import SocketClient, recv_msg
 
+def load_config():
+    try:
+        with open('../../config.json', 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
 class VigilanteClient:
-    def __init__(self, host='127.0.0.1', port=5003):
+    def __init__(self):
+        config = load_config().get('vigilante_client', {})
+        host = config.get('testing_host', '127.0.0.1')
+        port = config.get('testing_port', 5003)
+        
         self.host = host
         self.port = port
         self.client = SocketClient(host, port)
@@ -64,15 +75,8 @@ class VigilanteClient:
         print(f"{alert_type:<15} | {alert_time:<10} | {camera:<15} | {image_status}")
 
 if __name__ == "__main__":
-    # Usage: python vigilante_client.py [host] [port]
-    host = '127.0.0.1'
-    port = 5003
-    if len(sys.argv) > 1:
-        host = sys.argv[1]
-    if len(sys.argv) > 2:
-        port = int(sys.argv[2])
-        
-    client = VigilanteClient(host, port)
+    # Usage: python vigilante_client.py
+    client = VigilanteClient()
     try:
         client.start()
     except KeyboardInterrupt:

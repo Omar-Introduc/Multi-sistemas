@@ -9,8 +9,20 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'
 from src.common.socket_comm import SocketServer, send_msg
 from src.training.model import AIModel
 
+def load_config():
+    try:
+        with open('../../config.json', 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
 class TrainingServer(SocketServer):
-    def __init__(self, host='0.0.0.0', port=5002, model_path='model.pkl'):
+    def __init__(self):
+        config = load_config().get('training_server', {})
+        host = config.get('host', '0.0.0.0')
+        port = config.get('port', 5002)
+        model_path = config.get('model_path', 'model.pkl')
+        
         super().__init__(host, port)
         self.model = AIModel()
         self.model_path = model_path

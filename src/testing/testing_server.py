@@ -12,13 +12,25 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'
 from src.common.socket_comm import SocketServer, SocketClient, send_msg, recv_msg
 from src.training.model import AIModel
 
+def load_config():
+    try:
+        with open('../../config.json', 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
 class TestingServer(SocketServer):
-    def __init__(self, host='0.0.0.0', port=5003, video_host='127.0.0.1', video_port=5001, training_host='127.0.0.1', training_port=5002):
+    def __init__(self):
+        config = load_config().get('testing_server', {})
+        host = config.get('host', '0.0.0.0')
+        port = config.get('port', 5003)
+        
         super().__init__(host, port)
-        self.video_host = video_host
-        self.video_port = video_port
-        self.training_host = training_host
-        self.training_port = training_port
+        
+        self.video_host = config.get('video_host', '127.0.0.1')
+        self.video_port = config.get('video_port', 5001)
+        self.training_host = config.get('training_host', '127.0.0.1')
+        self.training_port = config.get('training_port', 5002)
         
         self.model = AIModel()
         self.model_path = 'downloaded_model.pkl'
@@ -146,7 +158,7 @@ class TestingServer(SocketServer):
             client_sock.close()
 
 if __name__ == "__main__":
-    # Usage: python testing_server.py [video_host] [video_port] [training_host] [training_port]
+    # Usage: python testing_server.py
     server = TestingServer()
     server.start()
     

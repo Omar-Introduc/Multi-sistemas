@@ -1,0 +1,24 @@
+{
+    "video_server": {
+        "host": "0.0.0.0",
+        "port": 5001,
+        "source": 0
+    },
+    "training_server": {
+        "host": "0.0.0.0",
+        "port": 5002,
+        "model_path": "model.pkl"
+    },
+    "testing_server": {
+        "host": "0.0.0.0",
+        "port": 5003,
+        "video_host": "127.0.0.1",
+        "video_port": 5001,
+        "training_host": "127.0.0.1",
+        "training_port": 5002
+    },
+    "vigilante_client": {
+        "testing_host": "127.0.0.1",
+        "testing_port": 5003
+    }
+}
