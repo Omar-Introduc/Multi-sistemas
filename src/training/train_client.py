@@ -35,15 +35,23 @@ def train_model(data_path, host='127.0.0.1', port=5002):
         for class_name in os.listdir(data_path):
             class_dir = os.path.join(data_path, class_name)
             if os.path.isdir(class_dir):
-                print(f"Loading class: {class_name}")
+                images_in_class = []
+                # First pass: collect valid images
                 for img_name in os.listdir(class_dir):
                     img_path = os.path.join(class_dir, img_name)
                     img = cv2.imread(img_path)
                     if img is not None:
-                        # Encode to base64 to send via JSON
+                        images_in_class.append((img, class_name))
+                
+                # Check condition: > 2 images
+                if len(images_in_class) > 2:
+                    print(f"Loading class: {class_name} ({len(images_in_class)} images)")
+                    for img, label in images_in_class:
                         _, buf = cv2.imencode('.jpg', img)
                         b64 = base64.b64encode(buf).decode('utf-8')
-                        dataset.append((b64, class_name))
+                        dataset.append((b64, label))
+                else:
+                    print(f"Skipping class: {class_name} (Found {len(images_in_class)} images, required > 2)")
         
         print(f"Sending training request with {len(dataset)} images...")
         # Note: We send (b64_string, label) tuples. 

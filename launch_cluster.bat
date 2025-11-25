@@ -4,6 +4,9 @@ echo Starting Multi-sistemas Cluster...
 start "Training Server" cmd /k "cd src/training && python training_server.py"
 timeout /t 2
 
+start "Worker Server" cmd /k "cd src/training && python worker_server.py 6000"
+timeout /t 2
+
 start "Video Server" cmd /k "cd src/video_server && python video_server.py"
 timeout /t 2
 
