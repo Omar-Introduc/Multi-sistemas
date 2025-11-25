@@ -8,6 +8,10 @@ train:
 	@echo "Phase: Training..."
 	@python automate_pipeline.py train
 
+clean:
+	@echo "Phase: Cleaning..."
+	@python automate_pipeline.py clean
+
 evaluate:
 	@echo "Phase: Evaluation..."
 	@python automate_pipeline.py evaluate
@@ -19,7 +23,3 @@ test:
 kill:
 	@echo "Stopping servers..."
 	@python automate_pipeline.py kill
-
-clean:
-	@del /Q model.pkl training_history.json *.png
-	@echo "Cleaned artifacts."

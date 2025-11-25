@@ -4,7 +4,20 @@ import os
 import sys
 import argparse
 
+def run_clean():
+    print("\n[Phase: CLEAN] Deleting old artifacts...")
+    artifacts = ["model.pkl", "training_history.json"]
+    for f in os.listdir("."):
+        if f.endswith(".png"):
+            artifacts.append(f)
+
+    for artifact in artifacts:
+        if os.path.exists(artifact):
+            os.remove(artifact)
+            print(f"  -> Deleted {artifact}")
+
 def run_train():
+    run_clean()
     print("\n[Phase: TRAIN] Launching Training Cluster...")
     # Start Training Cluster
     subprocess.Popen(["cmd", "/c", "launch_training_only.bat"], creationflags=subprocess.CREATE_NEW_CONSOLE)
@@ -43,11 +56,13 @@ def run_kill():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Automate Multi-sistemas Pipeline')
-    parser.add_argument('phase', choices=['train', 'evaluate', 'test', 'kill', 'all'], help='Phase to run')
+    parser.add_argument('phase', choices=['train', 'evaluate', 'test', 'kill', 'all', 'clean'], help='Phase to run')
     args = parser.parse_args()
     
     if args.phase == 'kill':
         run_kill()
+    elif args.phase == 'clean':
+        run_clean()
     elif args.phase == 'train':
         run_train()
     elif args.phase == 'evaluate':
@@ -56,6 +71,7 @@ if __name__ == "__main__":
         run_test()
     elif args.phase == 'all':
         run_kill()
+        run_clean()
         run_train()
         run_evaluate()
         run_kill()
