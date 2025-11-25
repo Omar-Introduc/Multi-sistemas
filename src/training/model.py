@@ -131,13 +131,20 @@ class AIModel:
 
     def load(self, path):
         if os.path.exists(path):
-            with open(path, 'rb') as f:
-                self.model_data = pickle.load(f)
-            # Check if valid model
-            if self.model_data['features']:
-                self.is_trained = True
-                print(f"Model loaded from {path} with {len(self.model_data['features'])} samples")
-            else:
-                print("Loaded empty model")
+            try:
+                with open(path, 'rb') as f:
+                    self.model_data = pickle.load(f)
+                # Check if valid model
+                if isinstance(self.model_data, dict) and self.model_data.get('features'):
+                    self.is_trained = True
+                    print(f"Model loaded from {path} with {len(self.model_data['features'])} samples")
+                else:
+                    self.model_data = {'features': [], 'labels': []} # Reset
+                    self.is_trained = False
+                    print("Loaded invalid or empty model, reset.")
+            except (pickle.UnpicklingError, EOFError, KeyError) as e:
+                print(f"Error loading model file {path}: {e}. Resetting model.")
+                self.model_data = {'features': [], 'labels': []} # Reset
+                self.is_trained = False
         else:
             print(f"Model file {path} not found")
