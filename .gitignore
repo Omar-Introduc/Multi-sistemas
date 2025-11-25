@@ -25,3 +25,4 @@ datasets/
 *.log
 training_history.json
 *.png
+*.lock
