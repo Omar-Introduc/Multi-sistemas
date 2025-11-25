@@ -31,6 +31,31 @@ class AIModel:
             print(f"Error extracting features: {e}")
             return None
 
+    def _augment_image(self, image):
+        """
+        Apply random augmentations to an image.
+        """
+        # Rotation
+        angle = np.random.uniform(-15, 15)
+        h, w = image.shape[:2]
+        center = (w // 2, h // 2)
+        rot_mat = cv2.getRotationMatrix2D(center, angle, 1.0)
+        image = cv2.warpAffine(image, rot_mat, (w, h))
+
+        # Flip
+        if np.random.rand() > 0.5:
+            image = cv2.flip(image, 1) # Horizontal flip
+
+        # Brightness
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        hsv = np.array(hsv, dtype=np.float64)
+        hsv[:, :, 2] = hsv[:, :, 2] * (0.5 + np.random.uniform())
+        hsv[:, :, 2][hsv[:, :, 2] > 255] = 255
+        hsv = np.array(hsv, dtype=np.uint8)
+        image = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+
+        return image
+
     def train(self, dataset):
         """
         Train the model (KNN style: store features).
@@ -43,27 +68,38 @@ class AIModel:
         labels_list = []
         
         for i, (img_data, label) in enumerate(dataset):
-            # Convert to numpy array if needed
+            # Convert to numpy array if needed, ensuring it's a color image
             if isinstance(img_data, bytes):
                 nparr = np.frombuffer(img_data, np.uint8)
-                img = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
+                img_color = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             elif isinstance(img_data, np.ndarray):
                 if len(img_data.shape) == 3:
-                    img = cv2.cvtColor(img_data, cv2.COLOR_BGR2GRAY)
-                else:
-                    img = img_data
+                    img_color = img_data
+                else: # Grayscale
+                    img_color = cv2.cvtColor(img_data, cv2.COLOR_GRAY2BGR)
             else:
-                # Assuming list of ints (mock data) - skip or try to convert
-                # For real usage, we expect bytes or ndarray
                 continue
 
-            if img is None:
+            if img_color is None:
                 continue
 
-            features = self._extract_features(img)
+            # 1. Process the original image
+            img_gray = cv2.cvtColor(img_color, cv2.COLOR_BGR2GRAY)
+            features = self._extract_features(img_gray)
             if features is not None:
                 features_list.append(features)
                 labels_list.append(label)
+
+            # 2. Process augmented versions
+            num_augmentations = 4  # Creates 4 extra images
+            for _ in range(num_augmentations):
+                augmented_img_color = self._augment_image(img_color.copy())
+                augmented_img_gray = cv2.cvtColor(augmented_img_color, cv2.COLOR_BGR2GRAY)
+
+                features = self._extract_features(augmented_img_gray)
+                if features is not None:
+                    features_list.append(features)
+                    labels_list.append(label)
         
         self.model_data['features'] = features_list
         self.model_data['labels'] = labels_list
