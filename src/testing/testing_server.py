@@ -104,6 +104,13 @@ class TestingServer(SocketServer):
                             print("Model not trained yet, skipping inference")
                 
                 time.sleep(0.1) # FPS control
+                
+            except Exception as e:
+                print(f"Error in process loop: {e}")
+                if self.video_client:
+                    self.video_client.close()
+                    self.video_client = None
+                time.sleep(2)
 
     @time_execution
     def _run_inference(self, frame, frame_id, b64_frame):
@@ -113,13 +120,6 @@ class TestingServer(SocketServer):
         # If interesting detection (not "Unknown" or specific target), alert
         if prediction != "Unknown":
             self._broadcast_alert(prediction, frame_id, b64_frame)
-                
-            except Exception as e:
-                print(f"Error in process loop: {e}")
-                if self.video_client:
-                    self.video_client.close()
-                    self.video_client = None
-                time.sleep(2)
 
     def _broadcast_alert(self, detection, frame_id, b64_image):
         alert_data = {
@@ -129,12 +129,6 @@ class TestingServer(SocketServer):
             'camera_id': self.video_host, # Simplified
             'image': b64_image
         }
-        
-        # Send to all connected Vigilantes
-        # We need to manage the list of clients safely
-        # The parent SocketServer adds clients to self.clients
-        # We can iterate over them.
-        # Note: self.clients contains raw sockets.
         
         disconnected = []
         for client_sock in self.clients:
@@ -150,8 +144,6 @@ class TestingServer(SocketServer):
     def handle_client(self, client_sock):
         # Vigilante connected
         print("Vigilante Connected")
-        # Keep connection open for push notifications
-        # We don't need to read much, maybe just a heartbeat or initial config
         try:
             while True:
                 msg = recv_msg(client_sock)
