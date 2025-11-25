@@ -33,7 +33,8 @@ class TrainingServer(SocketServer):
         # Worker Configuration (Hardcoded for demo, could be in config.json)
         self.workers = [
             ('127.0.0.1', 6000),
-            # ('127.0.0.1', 6001) # Add more workers here
+            ('127.0.0.1', 6001),
+            ('127.0.0.1', 6002)
         ]
 
     def _distribute_training(self, dataset):
