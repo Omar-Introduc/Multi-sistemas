@@ -1,0 +1,30 @@
+{
+    "video_server": {
+        "host": "0.0.0.0",
+        "port": 5001,
+        "source": "../../Download.mp4"
+    },
+    "training_server": {
+        "host": "0.0.0.0",
+        "port": 5002,
+        "model_path": "model.pkl",
+        "workers": [
+            ["localhost", 6000],
+            ["localhost", 6001],
+            ["localhost", 6002]
+        ],
+        "num_clients": 3
+    },
+    "testing_server": {
+        "host": "0.0.0.0",
+        "port": 5003,
+        "video_host": "127.0.0.1",
+        "video_port": 5001,
+        "training_host": "127.0.0.1",
+        "training_port": 5002
+    },
+    "vigilante_client": {
+        "testing_host": "127.0.0.1",
+        "testing_port": 5003
+    }
+}

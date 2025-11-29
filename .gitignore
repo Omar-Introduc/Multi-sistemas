@@ -1,6 +1,28 @@
+# Python
 __pycache__/
 *.pyc
-logs/
-data/
-models/
+*.pyo
+*.pyd
+
+# Environments
+.venv/
+env/
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Project Specific Data & Artifacts
+model.pkl
+downloaded_model.pkl
+captured_alerts/
+datasets/
 *.log
+training_history.json
+*.png
+*.lock

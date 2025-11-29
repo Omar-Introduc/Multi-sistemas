@@ -1,166 +1,188 @@
-import socket
-import threading
 import sys
 import os
 import time
-import datetime
-import cv2
+import threading
 import json
-import struct
+import base64
+import cv2
+import numpy as np
 
-# Ensure src is in python path
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
-
-from src.common.network import recv_image, send_msg
+# Add project root to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+from src.common.socket_comm import SocketServer, SocketClient, send_msg, recv_msg
 from src.training.model import AIModel
+from src.common.performance import time_execution, monitor
 
-HOST = '0.0.0.0'
-PORT = 5003
+def load_config():
+    try:
+        with open('../../config.json', 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
 
-class TestingServer:
+class TestingServer(SocketServer):
     def __init__(self):
-        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server_socket.bind((HOST, PORT))
-        self.server_socket.listen(5)
+        config = load_config().get('testing_server', {})
+        host = config.get('host', '0.0.0.0')
+        port = config.get('port', 5003)
+
+        super().__init__(host, port)
+
+        self.video_host = config.get('video_host', '127.0.0.1')
+        self.video_port = config.get('video_port', 5001)
+        self.training_host = config.get('training_host', '127.0.0.1')
+        self.training_port = config.get('training_port', 5002)
 
         self.model = AIModel()
-        self.load_model()
+        self.model_path = 'downloaded_model.pkl'
 
-        self.logs = []
-        self.logs_lock = threading.Lock()
+        # Try to load local model immediately
+        # Check current dir, root, and sibling training dir
+        possible_paths = [
+            'model.pkl',
+            '../training/model.pkl',
+            '../../src/training/model.pkl',
+            self.model_path
+        ]
 
-        self.watchmen = []
-        self.watchmen_lock = threading.Lock()
+        for path in possible_paths:
+            if os.path.exists(path):
+                print(f"Found local model at {path}, loading...")
+                try:
+                    self.model.load(path)
+                    if self.model.is_trained:
+                        break
+                except Exception as e:
+                    print(f"Failed to load {path}: {e}")
 
-    def log_debug(self, msg):
-        print(f"[SERVER] {msg}", flush=True)
+        self.video_client = None
+        self.training_client = None
 
-    def load_model(self):
-        model_path = os.path.join("models", "model.pkl")
-        if self.model.load(model_path):
-            self.log_debug("Model loaded successfully.")
-        else:
-            self.log_debug("Warning: Model could not be loaded.")
+        self.vigilantes = [] # List of connected vigilante clients
 
     def start(self):
-        self.log_debug(f"Testing Server started on {HOST}:{PORT}")
-        while True:
-            client_sock, addr = self.server_socket.accept()
-            self.log_debug(f"Client connected: {addr}")
-            threading.Thread(target=self.handle_client, args=(client_sock, addr)).start()
+        super().start()
+        # Start background thread to fetch frames and process
+        process_thread = threading.Thread(target=self._process_loop)
+        process_thread.daemon = True
+        process_thread.start()
 
-    def handle_client(self, conn, addr):
+        # Start background thread to update model periodically
+        update_thread = threading.Thread(target=self._model_update_loop)
+        update_thread.daemon = True
+        update_thread.start()
+
+    def _model_update_loop(self):
+        while self.running:
+            try:
+                # Connect to Training Server to get model
+                client = SocketClient(self.training_host, self.training_port)
+                client.connect()
+                client.send('GET_MODEL', {})
+                msg = client.receive()
+                if msg and msg.msg_type == 'MODEL_DATA':
+                    b64_model = msg.payload.get('model_file')
+                    if b64_model:
+                        model_bytes = base64.b64decode(b64_model)
+                        with open(self.model_path, 'wb') as f:
+                            f.write(model_bytes)
+                        self.model.load(self.model_path)
+                        print("Model updated successfully")
+                client.close()
+            except ConnectionRefusedError:
+                # Expected if Training Server is offline (Testing Only Mode)
+                pass
+            except Exception as e:
+                print(f"Error updating model: {e}")
+
+            time.sleep(60) # Check every minute
+
+    def _process_loop(self):
+        # Connect to Video Server
+        while self.running:
+            try:
+                if not self.video_client:
+                    self.video_client = SocketClient(self.video_host, self.video_port)
+                    self.video_client.connect()
+
+                # Request Frame
+                self.video_client.send('GET_FRAME', {})
+                msg = self.video_client.receive()
+
+                if msg and msg.msg_type == 'FRAME_RESPONSE':
+                    b64_frame = msg.payload.get('frame')
+                    frame_id = msg.payload.get('id')
+
+                    if b64_frame:
+                        # Decode image
+                        img_bytes = base64.b64decode(b64_frame)
+                        nparr = np.frombuffer(img_bytes, np.uint8)
+                        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+                        # Inference
+                        if self.model.is_trained:
+                            self._run_inference(frame, frame_id, b64_frame)
+                        else:
+                            print("Model not trained yet, skipping inference")
+
+                time.sleep(0.1) # FPS control
+
+            except Exception as e:
+                print(f"Error in process loop: {e}")
+                if self.video_client:
+                    self.video_client.close()
+                    self.video_client = None
+                time.sleep(2)
+
+    @time_execution
+    def _run_inference(self, frame, frame_id, b64_frame):
+        prediction = self.model.predict(frame)
+        print(f"Frame {frame_id}: Detected {prediction}")
+
+        # If interesting detection (not "Unknown" or specific target), alert
+        if prediction != "Unknown":
+            self._broadcast_alert(prediction, frame_id, b64_frame)
+
+    def _broadcast_alert(self, detection, frame_id, b64_image):
+        alert_data = {
+            'type': detection,
+            'time': time.strftime('%H:%M:%S'),
+            'date': time.strftime('%d/%m/%Y'),
+            'camera_id': self.video_host, # Simplified
+            'image': b64_image
+        }
+
+        disconnected = []
+        for client_sock in self.clients:
+            try:
+                send_msg(client_sock, 'ALERT', alert_data)
+            except:
+                disconnected.append(client_sock)
+
+        for d in disconnected:
+            if d in self.clients:
+                self.clients.remove(d)
+
+    def handle_client(self, client_sock):
+        # Vigilante connected
+        print("Vigilante Connected")
         try:
             while True:
-                # Read first chunk length
-                raw_len = self.recvall(conn, 4)
-                if not raw_len:
-                    self.log_debug(f"Client {addr} disconnected (EOF on len).")
-                    break
-                length = struct.unpack('>I', raw_len)[0]
-
-                # Read first chunk (Metadata or Message)
-                data = self.recvall(conn, length)
-                if not data:
-                    self.log_debug(f"Client {addr} disconnected (EOF on data).")
-                    break
-
-                msg = json.loads(data.decode('utf-8'))
-                msg_type = msg.get("type")
-
-                if msg_type == "frame":
-                    # Read image size
-                    raw_img_len = self.recvall(conn, 4)
-                    if not raw_img_len:
-                        self.log_debug(f"Client {addr} disconnected (EOF on img len).")
-                        break
-                    img_len = struct.unpack('>I', raw_img_len)[0]
-
-                    img_bytes = self.recvall(conn, img_len)
-                    if not img_bytes:
-                        self.log_debug(f"Client {addr} disconnected (EOF on img data).")
-                        break
-
-                    nparr = np.frombuffer(img_bytes, np.uint8)
-                    image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-                    self.process_frame(image, msg)
-
-                elif msg_type == "watchman_connect":
-                    self.log_debug(f"Watchman connected: {addr}")
-                    with self.watchmen_lock:
-                        self.watchmen.append(conn)
-                    with self.logs_lock:
-                         send_msg(conn, {"type": "log_update", "logs": self.logs})
-                    self.wait_for_close(conn)
-                    return
-
-        except Exception as e:
-            self.log_debug(f"Error handling client {addr}: {e}")
-            import traceback
-            traceback.print_exc()
-        finally:
-            conn.close()
-            with self.watchmen_lock:
-                if conn in self.watchmen:
-                    self.watchmen.remove(conn)
-
-    def wait_for_close(self, sock):
-        try:
-            while True:
-                d = sock.recv(1024)
-                if not d:
+                msg = recv_msg(client_sock)
+                if not msg:
                     break
         except:
             pass
-
-    def recvall(self, sock, n):
-        data = bytearray()
-        while len(data) < n:
-            packet = sock.recv(n - len(data))
-            if not packet:
-                return None
-            data.extend(packet)
-        return data
-
-    def process_frame(self, image, meta):
-        label = self.model.predict(image)
-        self.log_debug(f"Processing frame from camera {meta.get('camera_id')}: Predicted {label}")
-
-        if label != "Unknown" and label != "Unknown (Untrained)":
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            self.log_debug(f"Detected {label} at {timestamp}")
-
-            filename = f"{label}_{int(time.time())}.jpg"
-            filepath = os.path.join("logs", filename)
-            if not os.path.exists("logs"):
-                os.makedirs("logs")
-            cv2.imwrite(filepath, image)
-
-            log_entry = {
-                "type": label,
-                "photo": filepath,
-                "date": timestamp.split()[0],
-                "time": timestamp.split()[1],
-                "camera_id": meta.get("camera_id")
-            }
-
-            with self.logs_lock:
-                self.logs.append(log_entry)
-
-            self.notify_watchmen(log_entry)
-
-    def notify_watchmen(self, log_entry):
-        msg = {"type": "new_detection", "log": log_entry}
-        with self.watchmen_lock:
-            for w in self.watchmen:
-                try:
-                    send_msg(w, msg)
-                except:
-                    pass
+        finally:
+            client_sock.close()
 
 if __name__ == "__main__":
-    import numpy as np
+    # Usage: python testing_server.py
     server = TestingServer()
     server.start()
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        server.stop()
