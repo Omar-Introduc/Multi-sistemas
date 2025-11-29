@@ -2,11 +2,12 @@ import cv2
 import numpy as np
 import os
 import pickle
+import xgboost as xgb
 
 class AIModel:
     def __init__(self):
-        # Using KNN as it is simple and supported by OpenCV
-        self.knn = cv2.ml.KNearest_create()
+        # Using XGBoost as the main model
+        self.model = xgb.XGBClassifier(use_label_encoder=False, eval_metric='mlogloss')
         self.trained = False
         self.label_map = {} # Maps integer labels to string names
 
@@ -39,7 +40,7 @@ class AIModel:
         train_data = self.prepare_data(images)
         train_labels = np.array(labels, dtype=np.int32)
 
-        self.knn.train(train_data, cv2.ml.ROW_SAMPLE, train_labels)
+        self.model.fit(train_data, train_labels)
         self.label_map = label_names
         self.trained = True
         print(f"Model trained with {len(images)} images and {len(label_names)} classes.")
@@ -49,30 +50,36 @@ class AIModel:
             return "Unknown (Untrained)"
 
         data = self.prepare_data([image])
-        ret, results, neighbours, dist = self.knn.findNearest(data, k=3)
+        # XGBoost expects a batch, data is already (1, features)
 
-        label_idx = int(results[0][0])
+        prediction = self.model.predict(data)
+
+        label_idx = int(prediction[0])
         return self.label_map.get(str(label_idx), "Unknown")
 
     def save(self, filepath):
-        # OpenCV's save only saves the model structure/weights
-        # We also need to save the label map.
-        self.knn.save(filepath)
+        # Save the model and the label map
+        # XGBoost can save to json/ubjson
+        model_path = filepath + ".json"
+        self.model.save_model(model_path)
+
         with open(filepath + ".labels", 'wb') as f:
             pickle.dump(self.label_map, f)
-        print(f"Model saved to {filepath}")
+        print(f"Model saved to {model_path} and labels to {filepath}.labels")
 
     def load(self, filepath):
-        if not os.path.exists(filepath):
-            print(f"Model file {filepath} not found.")
+        model_path = filepath + ".json"
+        if not os.path.exists(model_path):
+            print(f"Model file {model_path} not found.")
+            # Backward compatibility check for old pickle model or just fail
             return False
 
-        self.knn = cv2.ml.KNearest_load(filepath)
+        self.model.load_model(model_path)
 
         if os.path.exists(filepath + ".labels"):
             with open(filepath + ".labels", 'rb') as f:
                 self.label_map = pickle.load(f)
 
         self.trained = True
-        print(f"Model loaded from {filepath}")
+        print(f"Model loaded from {model_path}")
         return True

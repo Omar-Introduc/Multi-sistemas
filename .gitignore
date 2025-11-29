@@ -4,3 +4,4 @@ logs/
 data/
 models/
 *.log
+dummy_data/
